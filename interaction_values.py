@@ -224,8 +224,10 @@ class MultiModalExplainer(Explainer):
 
     def shaply_interaction_values(self):
         modality_arrays = [np.eye(self.number_modalities, dtype=int)[i] for i in range(self.number_modalities)]
-        df_coalitions = self.coalitions['best']
-
+        output_class = 'best'
+        interaction_column = 'interaction_sum_abs'
+        df_coalitions = self.coalitions[output_class]
+        self.coalitions[output_class][interaction_column] = 0
         for sample_row in range(len(df_coalitions)):
             interactions = []
             for i in modality_arrays:
@@ -255,13 +257,38 @@ class MultiModalExplainer(Explainer):
                     else:
                         interaction_row.append(0)
                 interactions.append(interaction_row)
-            self.interaction_values.append(pd.DataFrame(interactions,columns=[self.feature_names], index=[self.feature_names]))
+
+            self.coalitions[output_class].loc[sample_row, interaction_column] = np.sum(np.abs(interactions))
+            # calculate phi_ii
+            interaction_df = pd.DataFrame(interactions, columns=[self.feature_names], index=[self.feature_names])
+            for idx,i in enumerate(modality_arrays):
+                shaply_value_i = df_coalitions[f'shaply_value_{i}'][sample_row]
+                interaction_i = np.sum(interaction_df[self.feature_names[idx]].values)
+                interaction_df.loc[self.feature_names[idx],self.feature_names[idx]] = shaply_value_i - interaction_i
+            self.interaction_values.append(interaction_df)
         return self.interaction_values
 
 
 
-
-
+    def interaction_metric(self):
+        '''
+        best = self.coalitions['best']
+        ones_columns = [col for col in best.columns if '1' in col and '0' not in col]
+        zeros_columns = [col for col in best.columns if '0' in col and '1' not in col]
+        ones_values = best[ones_columns].values
+        zeros_values = best[zeros_columns].values
+        interaction = best['interaction_sum'].values
+        interaction_score = np.abs(interaction).flatten() / (ones_values - zeros_values).flatten()
+        self.coalitions['best']['cross_modal_interaction'] = interaction_score
+        '''
+        interaction_score = []
+        for interaction_df in self.interaction_values:
+            identity_mask = np.eye(interaction_df.shape[0])
+            shaply_values = np.sum(np.abs(interaction_df.values))
+            interaction_values = np.sum(np.abs((1 - identity_mask) * interaction_df.values))
+            interaction_score.append(interaction_values/shaply_values)
+        self.coalitions['best']['cross_modal_interaction'] = interaction_score
+        return interaction_score
 
     def __call__(self, X):
         start_time = time.time()
