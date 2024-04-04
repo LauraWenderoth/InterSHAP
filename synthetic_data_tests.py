@@ -1,87 +1,22 @@
 import pickle
-import os
 import wandb
-from generate_data import visualize_umap
-import shap
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
-from sklearn.metrics import f1_score, confusion_matrix, recall_score, precision_score, accuracy_score,balanced_accuracy_score
-from functools import reduce
 import pandas as pd
 from interaction_values import MultiModalExplainer
 import random
-import torch.nn.functional as F
 import numpy as np
 from pathlib import Path
-from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
-from sklearn.metrics import f1_score, confusion_matrix, recall_score, precision_score, accuracy_score,balanced_accuracy_score
-from functools import reduce
+from EMAP import evaluate_emap, calculate_EMAP
 import torch
 from tqdm import tqdm
-import torch.nn as nn
-import torch.optim as optim
 from torch.utils.data import  DataLoader
 from dataloader import MMDataset
-
-
-class MMFeedForwardNN(nn.Module):
-    def __init__(self, input_size, output_size):
-        device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-        super(MMFeedForwardNN, self).__init__()
-        hidden_size = [dim // 2 for dim in input_size]
-        self.fc_modality_layers = [nn.Linear(input, hid).to(device) for input,hid in zip(input_size,hidden_size)]
-        self.fc_final = nn.Linear(np.sum(hidden_size), output_size)
-        self.float()
-
-    def forward(self, features):
-        # Pass each modality through its respective hidden layer
-        x_hidden = [torch.relu(layer(x_modality))for layer,x_modality in zip(self.fc_modality_layers,features)]
-        # Concatenate hidden representations
-        x_concatenated = torch.cat(x_hidden, dim=-1)
-        # Pass concatenated hidden representations through the final fully connected layer
-        x_output = self.fc_final(x_concatenated)
-
-        return x_output
-class FeedForwardNN(nn.Module):
-    def __init__(self, input_size, output_size):
-        super(FeedForwardNN, self).__init__()
-        hidden_size = input_size // 2
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, output_size)
-        self.float()  # Set dtype of the model to float
-
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))  # Apply ReLU activation to output of first layer
-        x = self.fc2(x)  # Output of second layer
-        return x
+from models import MMFeedForwardNN,FeedForwardNN
+from utils import  eval_model, save_checkpoint
 
 
 
-def save_checkpoint(model, checkpoint_path, filename="checkpoint.pt"):
-    os.makedirs(checkpoint_path, exist_ok=True)
-    filename = os.path.join(checkpoint_path, filename)
-    torch.save(model, filename)
-    print(f'Model checkpoint saved to {filename}')
 
 
-def load_checkpoint(model, path):
-    best_checkpoint = torch.load(path)
-    model.load_state_dict(best_checkpoint)
-    return best_checkpoint
 def train_epoch(train_dataloader, model, optimizer,device):
     model.train()
     epoch_loss = 0
@@ -101,45 +36,6 @@ def train_epoch(train_dataloader, model, optimizer,device):
         epoch_loss += loss.item()
     return model, epoch_loss
 
-def eval_model(dataloader, model,device,title='Val',use_wandb=False):
-    model.eval()
-    probas = []
-    y_true = []
-    with torch.no_grad():
-        for i, data in enumerate(dataloader):
-            features, label = data
-            try:
-                features = features.to(device)
-            except:
-                features = [feat.to(device) for feat in features]
-            logit = model(features)
-            prob = F.softmax(logit, dim=1).data.cpu().numpy()
-            probas.extend(prob)
-            y_true.extend(label)
-    predictions = np.argmax(probas,axis=1)
-
-    f1 = f1_score(y_true, predictions, average='weighted')
-    f1_macro = f1_score(y_true, predictions, average='macro')
-    recall = recall_score(y_true, predictions, average='weighted')
-    precision = precision_score(y_true, predictions, average='weighted')
-    accuracy = accuracy_score(y_true, predictions)
-    balanced_accuracy = balanced_accuracy_score(y_true, predictions)
-    print(f"Evaluation of {title} split: F1 Score: {f1},F1 Score macro: {f1_macro}, Recall: {recall}, Precision: {precision}, Accuracy: {accuracy}, balanced Acc {balanced_accuracy}")
-
-    # Calculate confusion matrix
-    conf_matrix = confusion_matrix(y_true, predictions)
-    results = {f'{title}_f1':f1,f'{title}_f1_macro':f1_macro,f'{title}_recall':recall,f'{title}_precision':precision,f'{title}_accuracy':accuracy,f'{title}_balanced_accuracy':balanced_accuracy}
-    if use_wandb:
-        class_names = list(np.unique(y_true))
-        class_names = [str(class_name) for class_name in class_names]
-        wandb.log(results)
-        cm = wandb.plot.confusion_matrix(
-            y_true=np.array(y_true),
-            preds=np.array(predictions),
-            class_names=class_names)
-
-        wandb.log({"conf_mat": cm})
-    return results,conf_matrix
 
 def train(device,train_dataloader, val_dataloader, save_path, use_wandb, experiment_name = 'redundancy', num_epochs=100, test_inverval = 10, input_size = 10, output_size = 2, lr = 1e-4, step_size = 500 ,concat=True):
 
@@ -188,7 +84,7 @@ def run(train_model = True):
     n_modality = 2
     setting = 'uniqueness1'  # 'redundancy' 'synergy' uniqueness0 uniqueness1
     concat = True
-    label = 'AND_'  # 'OR_'
+    label = ''  # 'OR_' XOR_
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     for setting in ['redundancy', 'synergy', 'uniqueness0', 'uniqueness1']:
         data_path = f'/home/lw754/masterproject/PID/synthetic_data/{label}DATA_{setting}.pickle'
@@ -246,7 +142,17 @@ def run(train_model = True):
         if use_wandb:
             test_loader = DataLoader(test_dataset, batch_size=batch_size,
                                     shuffle=True, num_workers=0)
-            eval_model(test_loader, model, device, title='Test',use_wandb=True)
+            results,_=  eval_model(test_loader, model, device, title='Test',use_wandb=True)
+            projection_logits, y = calculate_EMAP(model, test_dataset, device=device, concat=concat,
+                                                  len_modality=input_size[0])
+            results_emap,_ = evaluate_emap(projection_logits, y, title='Emap', use_wandb=True)
+            emap_gap = {}
+            for (key_results, value_results), (key_results_emap, value_results_emap) in zip(results.items(),
+                                                                                            results_emap.items()):
+                assert key_results.split("_")[1] == key_results_emap.split("_")[1], "Keys do not match!"
+                key = '_'.join(['emap_gap'] + key_results.split("_")[1:])
+                emap_gap[key] = abs(value_results - value_results_emap)
+            wandb.log(emap_gap)
             wandb.log({"cross_modal": np.mean(np.abs(our_metric)),'cross_modal_rel':np.mean(interaction_score)})
             wandb.log(shaply_values.mean().to_dict())
         print("cross_modal", np.mean(np.abs(our_metric)),'cross_modal_rel', np.mean(interaction_score))

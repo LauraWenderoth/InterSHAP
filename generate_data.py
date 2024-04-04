@@ -70,11 +70,55 @@ def visualize_umap(data, n_modality, label, setting):
     plt.show()
 
 
+
+
+def generate_synthetic_data(num_samples, d1, d2, d, delta):
+    """
+    Generate synthetic data (v, t, y) according to the specified process.
+
+    Parameters:
+    num_samples (int): Number of synthetic data points to generate.
+    d1 (int): Number of rows for matrix V.
+    d2 (int): Number of rows for matrix T.
+    d (int): Number of columns for matrices V and T.
+    delta (float): Threshold for |v · t|.
+
+    Returns:
+    data (list): List of tuples, each containing (V v, T t, y).
+    """
+    X = []
+    label = []
+
+    while len(X) < num_samples:
+        # Step 1: Sample random projection V and T from U(-0.5, 0.5)
+        V = np.random.uniform(-0.5, 0.5, size=(d1, d))
+        T = np.random.uniform(-0.5, 0.5, size=(d2, d))
+
+        # Step 2: Sample v and t from N(0, 1) and normalize to unit length
+        v = np.random.normal(0, 1, size=(d,))
+        t = np.random.normal(0, 1, size=(d,))
+        v = v / np.linalg.norm(v)
+        t = t / np.linalg.norm(t)
+
+        # Step 3: Check if |v · t| > delta
+        if abs(np.dot(v, t)) > delta:
+            # Step 4: Determine y based on the sign of v · t
+            if np.dot(v, t) > 0:
+                y = 1
+            else:
+                y = 0
+            # Step 5: Add data point to the list
+            X.append([np.dot(V, v), np.dot(T, t)])
+            label.append(y)
+
+    return X,label
+
+
 if __name__ == "__main__":
     # Example usage:
     parser = argparse.ArgumentParser()
     parser.add_argument("--perturbation", type=bool, default=True, help="Whether to apply perturbation")
-    parser.add_argument("--number_samples", type=int, default=20000, help="Number of samples")
+    parser.add_argument("--number_samples", type=int, default=10, help="Number of samples")
     parser.add_argument("--save_path", type=str,
                         default="/home/lw754/masterproject/PID/synthetic_data/",
                         help="Path to save the file")
@@ -83,13 +127,24 @@ if __name__ == "__main__":
     parser.add_argument("--n_modality", type=int, default=2, help="Number of modalities")
     parser.add_argument("--label", type=str, default='OR', help="Number of modalities")
 
+    easy = False
     args = parser.parse_args()
 
     save_path = Path(args.save_path)
-    X, y = generate_data_AND(args.setting, args.perturbation, number_samples=args.number_samples,
+
+    if easy:
+        X, y = generate_data_AND(args.setting, args.perturbation, number_samples=args.number_samples,
                                  number_modalities=args.n_modality, label=args.label)
 
-    # Assuming you have the necessary data ready
+    else:
+        d = 100
+        d1 = 2000
+        d2 = 1000
+        delta = 0.25
+
+        # Generate synthetic data
+        X, y = generate_synthetic_data(args.number_samples, d1, d2, d, delta)
+
 
     data = dict()
     data['train'] = dict()
