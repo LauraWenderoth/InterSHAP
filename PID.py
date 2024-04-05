@@ -118,17 +118,24 @@ def UI(P, cond_id=0):
     assert False
 
   return sum
-def get_measure(P):
+def get_measure(P,do_round=True):
   Q = solve_Q_new(P)
   redundancy = CoI(Q)
-  print('Redundancy', redundancy)
   unique_1 = UI(Q, cond_id=1)
-  print('Unique', unique_1)
   unique_2 = UI(Q, cond_id=0)
-  print('Unique', unique_2)
   synergy = CI(P, Q)
+
+  if do_round:
+      redundancy = round(redundancy, 2)
+      synergy = round(synergy, 2)
+      unique_2 = round(unique_2, 2)
+      unique_1 = round(unique_1, 2)
+  print('Redundancy', redundancy)
+  print('Unique 0', unique_1)
+  print('Unique 1', unique_2)
   print('Synergy', synergy)
-  return {'redundancy':redundancy, 'unique1':unique_1, 'unique2':unique_2, 'synergy':synergy}
+
+  return {'redundancy':redundancy, 'unique0':unique_1, 'unique1':unique_2, 'synergy':synergy}
 
 def extract_categorical_from_data(x):
   supp = set(x)
@@ -174,6 +181,9 @@ if __name__ == "__main__":
     label = ''  # 'OR_' XOR_
     settings = ['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'] #['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'] #
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+    if use_wandb:
+        wandb.init(project="masterthesis", name=f"{label}DATA", group="shaply_interaction_index")
     for setting in settings:
 
         data_path = data_root_path/ f'{label}DATA_{setting}.pickle'
@@ -200,9 +210,14 @@ if __name__ == "__main__":
         result = get_measure(P)
         results[setting] = result
         print()
+
     if use_wandb:
-        wandb.init(project="masterthesis", name=f"{label}DATA", group="shaply_interaction_index")
         wandb.log(results)
+        df = pd.DataFrame.from_dict(results, orient='index')
+        df.reset_index(drop=False, inplace=True)
+        my_table = wandb.Table(dataframe=df)
+        wandb.log({"PID results": my_table})
+
         wandb.finish()
 
     save_path = results_path/ f'{label}DATA_PID_results.pickle'
