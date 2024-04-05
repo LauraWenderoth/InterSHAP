@@ -71,7 +71,7 @@ def visualize_umap(data, n_modality, label, setting):
 
 
 
-def generate_synthetic_data(num_samples, d1, d2, d, delta):
+def generate_synthetic_data(num_samples, d1, d2, d, delta,setting = 'redundancy'):
     """
     Generate synthetic data (v, t, y) according to the specified process.
 
@@ -87,28 +87,57 @@ def generate_synthetic_data(num_samples, d1, d2, d, delta):
     """
     X = []
     label = []
+    base_ratio =  0.40
+    d_base = int(d * base_ratio)
+    d_modality = d - d_base
 
+    # Step 1: Sample random projection V and T from U(-0.5, 0.5)
+    M1 = np.random.uniform(-0.5, 0.5, size=(d1, d))
+    M2 = np.random.uniform(-0.5, 0.5, size=(d2, d))
     while len(X) < num_samples:
-        # Step 1: Sample random projection V and T from U(-0.5, 0.5)
-        V = np.random.uniform(-0.5, 0.5, size=(d1, d))
-        T = np.random.uniform(-0.5, 0.5, size=(d2, d))
+
+
 
         # Step 2: Sample v and t from N(0, 1) and normalize to unit length
-        v = np.random.normal(0, 1, size=(d,))
-        t = np.random.normal(0, 1, size=(d,))
-        v = v / np.linalg.norm(v)
-        t = t / np.linalg.norm(t)
+        m1 = np.random.normal( size=(d_modality,))
+        m2 = np.random.normal( size=(d_modality,))
+        base = np.random.normal( size=(d_base,))
+        m1 = m1 / np.linalg.norm(m1)
+        m2 = m2 / np.linalg.norm(m2)
+        base = base / np.linalg.norm(base)
 
+        
+        #check label
+        label_vector1 = 0
+        label_vector2 = 0
+        if setting == "redundancy":
+            label_vector1 = base[:len(base) // 2]
+            label_vector2 = base[len(base) // 2:]
+                
+        elif setting == "uniqueness0":
+            label_vector1 = m1[:len(m1) // 2]
+            label_vector2 = m1[len(m1) // 2:]
+
+        elif setting == "uniqueness1":
+            label_vector1 = m2[:len(m2) // 2]
+            label_vector2 = m2[len(m2) // 2:]
+            
+        elif setting == "synergy":
+            label_vector1 = m1
+            label_vector2 = m2
+
+            
         # Step 3: Check if |v · t| > delta
-        if abs(np.dot(v, t)) > delta:
+        if abs(np.dot(label_vector1, label_vector2)) > delta:
             # Step 4: Determine y based on the sign of v · t
-            if np.dot(v, t) > 0:
+            if np.dot(label_vector1, label_vector2) > 0:
                 y = 1
             else:
                 y = 0
             # Step 5: Add data point to the list
-            X.append([np.dot(V, v), np.dot(T, t)])
+            X.append([np.dot(M1, np.concatenate((m1, base))), np.dot(M2, np.concatenate((m2, base)))])
             label.append(y)
+    print(np.sum(label)/len(label))
 
     return X,label
 
@@ -117,26 +146,27 @@ if __name__ == "__main__":
     # Example usage:
     parser = argparse.ArgumentParser()
     parser.add_argument("--perturbation", type=bool, default=True, help="Whether to apply perturbation")
-    parser.add_argument("--number_samples", type=int, default=10, help="Number of samples")
+    parser.add_argument("--number_samples", type=int, default=200, help="Number of samples")
     parser.add_argument("--save_path", type=str,
                         default="/home/lw754/masterproject/PID/synthetic_data/",
                         help="Path to save the file")
     parser.add_argument("--setting", type=str, default='uniqueness1',
                         choices=['redundancy', 'uniqueness0', 'uniqueness1', 'synergy'], help="Data generation setting")
     parser.add_argument("--n_modality", type=int, default=2, help="Number of modalities")
-    parser.add_argument("--label", type=str, default='OR', help="Number of modalities")
+    parser.add_argument("--label", type=str, default='AND', help="Number of modalities")
 
-    easy = False
     args = parser.parse_args()
 
     save_path = Path(args.save_path)
 
-    if easy:
+    if args.label == 'OR' or args.label == 'XOR' or args.label == 'AND':
         X, y = generate_data_AND(args.setting, args.perturbation, number_samples=args.number_samples,
                                  number_modalities=args.n_modality, label=args.label)
+        X = np.array(X).transpose((1, 0, 2))  # (modalities, samples, features) --> (samples, modalities, features)
 
-    else:
-        d = 100
+
+    elif args.label == 'VEC': # synergy d = 200
+        d = 200
         d1 = 2000
         d2 = 1000
         delta = 0.25
@@ -152,13 +182,19 @@ if __name__ == "__main__":
 
     # Assuming you already have X_train, X_valid, X_test, y_train, y_valid, y_test, and n_modality defined
 
-    X_train, X_test, y_train, y_test = train_test_split(np.array(X).transpose((1,0,2)), y, test_size=0.3, stratify=y) #(modalities, samples, features) --> (samples, modalities, features)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y)
     X_valid, X_test, y_valid, y_test = train_test_split(X_test, y_test, test_size=0.5, stratify=y_test)
 
+    ''' 
     for i in range(args.n_modality):
         data['train'][str(i)] = np.array(X_train)[:, i, :]
         data['valid'][str(i)] = np.array(X_valid)[:, i, :]
         data['test'][str(i)] = np.array(X_test)[:, i, :]
+    '''
+    for i in range(args.n_modality):
+        data['train'][str(i)] = [sample[i] for sample in X_train]
+        data['valid'][str(i)] = [sample[i] for sample in X_valid]
+        data['test'][str(i)] = [sample[i] for sample in X_test]
 
     data['train']['label'] = np.array(y_train)
     data['valid']['label'] = np.array(y_valid)

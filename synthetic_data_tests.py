@@ -23,13 +23,13 @@ def parse_args():
     parser.add_argument('--use_wandb', default='True',action='store_true', help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=5000, help='Batch size for training')
     parser.add_argument('--n_samples_for_interaction', type=int, default=100, help='Number of samples for interaction')
-    parser.add_argument('--epochs', type=int, default=1, help='Number of epochs for training')
+    parser.add_argument('--epochs', type=int, default=150, help='Number of epochs for training')
     parser.add_argument('--n_modality', type=int, default=2, help='Number of modalities')
     parser.add_argument('--settings', nargs='+', type=str, default=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4',
                                  'mix5', 'mix6'],
                         choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4',
                                  'mix5', 'mix6'], help='List of settings')
-    parser.add_argument('--concat', action='store_true', help='Whether to concatenate')
+    parser.add_argument('--concat', default = 'True', action='store_true', help='Whether to concatenate')
     parser.add_argument('--label', type=str, default='', help='Can choose "" as PID synthetic data or "OR_" "XOR_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
