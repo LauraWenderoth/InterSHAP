@@ -74,7 +74,7 @@ def calculate_EMAP(model,X,device,concat=False,len_modality=None):
     assert not (concat and len_modality is None), 'Need number (len_modality) to split tensor'
     results_emap = collections.defaultdict(lambda: collections.defaultdict(dict))
     y = []
-    for i,data_i in enumerate(tqdm(X)):
+    for i,data_i in enumerate(tqdm(X,desc="EMAP")):
         X_i, y_i = data_i
         y.append(y_i)
         for j,data_j in enumerate(copy.deepcopy(X)):

@@ -4,7 +4,12 @@ import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import f1_score, confusion_matrix, recall_score, precision_score, accuracy_score,balanced_accuracy_score
 import torch
+import pickle
 
+def save_data(data, save_path):
+    with open(save_path, 'wb') as f:
+        pickle.dump(data, f)
+    print(f'Results saved to {save_path}')
 
 def save_checkpoint(model, checkpoint_path, filename="checkpoint.pt"):
     os.makedirs(checkpoint_path, exist_ok=True)

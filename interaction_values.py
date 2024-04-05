@@ -30,23 +30,6 @@ def reverse_reduce_data(reduced_data, original_sample: list):
             #tensor_reshaped = tensor_reshaped.to(torch.double)
             data_point.append(tensor_reshaped)
             index += tensor_size
-    '''
-        shape = tensor.shape
-        if isinstance(shape, (int, np.int64)):
-            # If shape is an integer, it represents a single tensor
-            modality = reduced_data[index:index + shape].reshape(shape)
-            modality = torch.tensor(modality)
-            data_point.append(modality)
-            index += shape
-        else:
-            tensor_list = []
-            for _ in range(shape):
-                tensor_size = np.prod(shape[1:])
-                tensor_list.append(reduced_data[index:index + tensor_size].reshape(shape[1:]))
-                index += tensor_size
-            tensor_list = torch.tensor(tensor_list)
-            data_point.append(tensor_list)
-    '''
     return data_point
 def powerset(lst):
     n = len(lst)
@@ -105,7 +88,8 @@ class MultiModalExplainer(Explainer):
             random_data_point = self.data[random_index] # to masked modalitiy
             random_data_point = reduce_data(random_data_point)
             if self.concat:
-                mask = torch.tensor(mask)
+                if not isinstance(mask, torch.Tensor):
+                    mask = torch.tensor(mask)
                 mask_random_data_point = mask ^ 1
                 masked_data_point = mask_random_data_point * random_data_point
                 masked_sample = mask.clone() * sample
@@ -126,32 +110,9 @@ class MultiModalExplainer(Explainer):
         return np.mean(model_predictions,axis=0).squeeze()
 
     def calculate_coaliton_values(self,X,model):
-        for i, sample in enumerate(tqdm(X)):
+        for i, sample in enumerate(tqdm(X,desc="Coalition Values")):
             self.explain_data.append(sample)
             data = reduce_data(sample)
-            '''
-            mask = self.masks[6]
-            mask = list(itertools.chain.from_iterable(mask))
-            mask = np.squeeze(mask)
-            squeezed_sample = make_np_squeeze(list(itertools.chain.from_iterable(data)))
-            mask_shaped = reverse_reduce_data(mask, data)
-            random_index = random.randint(0, len(self.data) - 1)
-            random_data_point = self.data[random_index]  # to masked modalitiy
-            random_data_point = reduce_data(random_data_point)
-            random_data_point = make_np_squeeze(random_data_point)
-            masked_data_point = ~mask.astype(bool) * random_data_point
-
-            masked_data = [mask_shaped[i] * data[i] for i in range(len(data))]
-
-            masked_sample = mask * squeezed_sample
-            masked_sample = masked_sample + masked_data_point
-
-            masked_sample_tensor = reverse_reduce_data(masked_sample, data)
-            masked_sample_tensor_old = [feat.to(device) for feat in masked_sample_tensor]
-            print(masked_sample_tensor_old)
-            logits = model.forward(masked_sample_tensor_old)
-            print(logits)
-            '''
             best = -1
             for mask,subset in zip(self.masks,self.powerset_masks):
 

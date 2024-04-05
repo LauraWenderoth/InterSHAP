@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from pathlib import Path
 import argparse
 import umap
+from utils import save_data
 import matplotlib.pyplot as plt
 def generate_data_AND(setting, perturbation, number_features=8, number_modalities=2, number_samples=100, label='AND'):
     number_features = number_features // 2
@@ -48,9 +49,7 @@ def generate_data_AND(setting, perturbation, number_features=8, number_modalitie
 
     return data, labels
 
-def save_data(data, filename):
-    with open(filename, 'wb') as f:
-        pickle.dump(data, f)
+
 def visualize_umap(data, n_modality, label, setting):
     # Concatenate the modalities for the training dataset
     X_train_concatenated = np.concatenate([data['train'][str(i)] for i in range(n_modality)], axis=1)
