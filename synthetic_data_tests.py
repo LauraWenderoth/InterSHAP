@@ -13,24 +13,24 @@ from dataloader import MMDataset
 from models import MMFeedForwardNN,FeedForwardNN
 from utils import  eval_model, save_checkpoint
 import argparse
+from SRI import SRI_normalise
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Argument Parser for your settings')
 
     # Add arguments
-    parser.add_argument('--train_model', default='True', help='Whether to train the model or just eval')
+    parser.add_argument('--train_model', default=False, help='Whether to train the model or just eval')
     parser.add_argument('--seeds', nargs='+', type=int, default=[1, 42, 113], help='List of seed values')
     parser.add_argument('--use_wandb', default='True',action='store_true', help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=5000, help='Batch size for training')
     parser.add_argument('--n_samples_for_interaction', type=int, default=100, help='Number of samples for interaction')
     parser.add_argument('--epochs', type=int, default=150, help='Number of epochs for training')
     parser.add_argument('--n_modality', type=int, default=2, help='Number of modalities')
-    parser.add_argument('--settings', nargs='+', type=str, default=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4',
-                                 'mix5', 'mix6'],
+    parser.add_argument('--settings', nargs='+', type=str, default=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'],
                         choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4',
                                  'mix5', 'mix6'], help='List of settings')
     parser.add_argument('--concat', default = 'True', action='store_true', help='Whether to concatenate')
-    parser.add_argument('--label', type=str, default='', help='Can choose "" as PID synthetic data or "OR_" "XOR_"')
+    parser.add_argument('--label', type=str, default='VEC2_', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
 
@@ -126,6 +126,7 @@ def train(device,train_dataloader, val_dataloader, save_path, use_wandb, experim
 
 if __name__ == "__main__":
     args = parse_args()
+    # args.train_model = False
     root_save_path = Path(args.root_save_path)
     print(f'Start experiments with setting {args.settings} on dataset {args.label}DATA'
           f'\nAll results will be saved to: {root_save_path}'
@@ -182,7 +183,7 @@ if __name__ == "__main__":
                 model.to(args.device)
             if args.concat:
                 input_size = [input_size // 2, input_size // 2]
-            print('\n Evaluation')
+            print(f'\nEvaluation Seed {seed}')
             explainer = MultiModalExplainer(model=model, data=val_dataset, modality_shapes=input_size,
                                             feature_names=['0', '1'], classes=2, concat=args.concat)
             explaination = explainer(test_dataset)
@@ -196,6 +197,7 @@ if __name__ == "__main__":
                                         shuffle=True, num_workers=0)
                 test_results,_=  eval_model(test_loader, model, args.device, title='Test',use_wandb=True)
                 run_results.update(test_results)
+                #### EMAP
                 projection_logits, y = calculate_EMAP(model, test_dataset, device=args.device, concat=args.concat,
                                                       len_modality=input_size[0])
                 results_emap,_ = evaluate_emap(projection_logits, y, title='Emap', use_wandb=True)
@@ -208,15 +210,22 @@ if __name__ == "__main__":
                     emap_gap[key] = abs(value_results - value_results_emap)
                 run_results.update(emap_gap)
                 wandb.log(emap_gap)
+                #### cross modal
                 cross_modal_results = {"cross_modal": np.mean(np.abs(our_metric)),'cross_modal_rel':np.mean(interaction_score)}
                 cross_modal_results.update(shaply_values.mean().to_dict())
                 run_results.update(cross_modal_results)
                 wandb.log(cross_modal_results)
+
+                ### SRI
+                SRI_result =SRI_normalise(interaction_values, args.n_modality)
+                run_results.update(SRI_result)
+                wandb.log(SRI_result)
+
+                ########
                 for key, score in run_results.items():
                     if key not in final_results:
                         final_results[key] = []
                     final_results[key].append(score)
-
 
             for key, df in explainer.coalitions.items():
                 df.to_csv(save_path / f"{key}.csv", index=False)
