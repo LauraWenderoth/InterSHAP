@@ -104,10 +104,11 @@ def SRI_normalise(shaply_interaction_values,n_modalities):
     normalise_factor = np.sum([synergy_values, redundancy_values, independence_values])
     synergy = np.sum(synergy_values) /normalise_factor
     redundancy = np.sum(redundancy_values) / normalise_factor
-    uniqueness = list(np.array(independence_values)/normalise_factor)
-    uniqueness_dict = {f'SRI_uniqueness{i}': value for i, value in enumerate(uniqueness)}
+    uniqueness_split = list(independence_values / normalise_factor)
+    uniqueness = np.sum(uniqueness_split)
+    uniqueness_dict = {f'SRI_uniqueness{i}': value for i, value in enumerate(uniqueness_split)}
 
-    result = {'SRI_synergy': synergy, 'SRI_redundancy': redundancy}
+    result = {'SRI_synergy': synergy, 'SRI_redundancy': redundancy, 'SRI_uniqueness':uniqueness}
     result.update(uniqueness_dict)
     return result
 

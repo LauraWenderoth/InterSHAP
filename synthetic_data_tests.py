@@ -14,7 +14,7 @@ from models import MMFeedForwardNN,FeedForwardNN
 from utils import  eval_model, save_checkpoint
 import argparse
 from SRI import SRI_normalise
-
+from SHAPE import cross_modal_SHAPE
 def parse_args():
     parser = argparse.ArgumentParser(description='Argument Parser for your settings')
 
@@ -26,11 +26,12 @@ def parse_args():
     parser.add_argument('--n_samples_for_interaction', type=int, default=100, help='Number of samples for interaction')
     parser.add_argument('--epochs', type=int, default=150, help='Number of epochs for training')
     parser.add_argument('--n_modality', type=int, default=2, help='Number of modalities')
-    parser.add_argument('--settings', nargs='+', type=str, default=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'],
+    parser.add_argument('--settings', nargs='+', type=str, default= ['mix1', 'mix2', 'mix3', 'mix4',
+                                 'mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'],
                         choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4',
                                  'mix5', 'mix6'], help='List of settings')
     parser.add_argument('--concat', default = 'True', action='store_true', help='Whether to concatenate')
-    parser.add_argument('--label', type=str, default='VEC2_', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
+    parser.add_argument('--label', type=str, default='', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
 
@@ -220,6 +221,13 @@ if __name__ == "__main__":
                 SRI_result =SRI_normalise(interaction_values, args.n_modality)
                 run_results.update(SRI_result)
                 wandb.log(SRI_result)
+
+                #### SHAPE
+                coalition_values = explainer.coalitions['best']
+                coalition_values= coalition_values.iloc[:, :(2 ** args.n_modality)]
+                SHAPE_result = cross_modal_SHAPE(coalition_values,args.n_modality)
+                run_results.update(SHAPE_result)
+                wandb.log(SHAPE_result)
 
                 ########
                 for key, score in run_results.items():

@@ -68,7 +68,7 @@ class MultiModalExplainer(Explainer):
         self.max_samples = max_samples
         self.explain_data = []
         self.base_values = self.calc_base_values(data,model)
-        self.interaction_values = []
+        self.interaction_values = dict()
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         if feature_names is not None:
             self.feature_names = feature_names
@@ -187,46 +187,47 @@ class MultiModalExplainer(Explainer):
         modality_arrays = [np.eye(self.number_modalities, dtype=int)[i] for i in range(self.number_modalities)]
         output_class = 'best'
         interaction_column = 'interaction_sum_abs'
-        df_coalitions = self.coalitions[output_class]
-        self.coalitions[output_class][interaction_column] = 0
-        for sample_row in range(len(df_coalitions)):
-            interactions = []
-            for i in modality_arrays:
-                interaction_row = []
-                for j in modality_arrays:
-                    if np.any(i != j):
-                        modality_index_i = np.where(i == 1)[0][0]
-                        modality_index_j = np.where(j == 1)[0][0]
-                        filtered_rows = self.powerset_masks[np.where((self.powerset_masks[:, modality_index_i] == 0) & (self.powerset_masks[:, modality_index_j] == 0))]
-                        filtered_rows_as_strings = [row for row in filtered_rows]
-                        interaction_value = 0
-                        for np_row, name in zip(filtered_rows, filtered_rows_as_strings):
-                            coalition_size = np.sum(np_row)
-                            weight = (math.factorial(coalition_size) * math.factorial(
-                                self.number_modalities - coalition_size - 2)) / (2*math.factorial(
-                                self.number_modalities-1))
-                            S_i = str(np_row + i)
-                            S_j = str(np_row + j)
-                            S_i_j = str(np_row + j + i)
-                            S = str(np_row)
-                            result_S_i = df_coalitions[S_i][sample_row]
-                            result_S_j = df_coalitions[S_j][sample_row]
-                            result_S_i_j = df_coalitions[S_i_j][sample_row]
-                            result_S = df_coalitions[S][sample_row]
-                            interaction_value += weight*(result_S_i_j+result_S-result_S_j-result_S_i)
-                        interaction_row.append(interaction_value)
-                    else:
-                        interaction_row.append(0)
-                interactions.append(interaction_row)
+        for output_class in self.coalitions.keys():
+            df_coalitions = self.coalitions[output_class]
+            self.coalitions[output_class][interaction_column] = 0
+            for sample_row in range(len(df_coalitions)):
+                interactions = []
+                for i in modality_arrays:
+                    interaction_row = []
+                    for j in modality_arrays:
+                        if np.any(i != j):
+                            modality_index_i = np.where(i == 1)[0][0]
+                            modality_index_j = np.where(j == 1)[0][0]
+                            filtered_rows = self.powerset_masks[np.where((self.powerset_masks[:, modality_index_i] == 0) & (self.powerset_masks[:, modality_index_j] == 0))]
+                            filtered_rows_as_strings = [row for row in filtered_rows]
+                            interaction_value = 0
+                            for np_row, name in zip(filtered_rows, filtered_rows_as_strings):
+                                coalition_size = np.sum(np_row)
+                                weight = (math.factorial(coalition_size) * math.factorial(
+                                    self.number_modalities - coalition_size - 2)) / (2*math.factorial(
+                                    self.number_modalities-1))
+                                S_i = str(np_row + i)
+                                S_j = str(np_row + j)
+                                S_i_j = str(np_row + j + i)
+                                S = str(np_row)
+                                result_S_i = df_coalitions[S_i][sample_row]
+                                result_S_j = df_coalitions[S_j][sample_row]
+                                result_S_i_j = df_coalitions[S_i_j][sample_row]
+                                result_S = df_coalitions[S][sample_row]
+                                interaction_value += weight*(result_S_i_j+result_S-result_S_j-result_S_i)
+                            interaction_row.append(interaction_value)
+                        else:
+                            interaction_row.append(0)
+                    interactions.append(interaction_row)
 
-            self.coalitions[output_class].loc[sample_row, interaction_column] = np.sum(np.abs(interactions))
-            # calculate phi_ii
-            interaction_df = pd.DataFrame(interactions, columns=[self.feature_names], index=[self.feature_names])
-            for idx,i in enumerate(modality_arrays):
-                shaply_value_i = df_coalitions[f'shaply_value_{i}'][sample_row]
-                interaction_i = np.sum(interaction_df[self.feature_names[idx]].values)
-                interaction_df.loc[self.feature_names[idx],self.feature_names[idx]] = shaply_value_i - interaction_i
-            self.interaction_values.append(interaction_df)
+                self.coalitions[output_class].loc[sample_row, interaction_column] = np.sum(np.abs(interactions))
+                # calculate phi_ii
+                interaction_df = pd.DataFrame(interactions, columns=[self.feature_names], index=[self.feature_names])
+                for idx,i in enumerate(modality_arrays):
+                    shaply_value_i = df_coalitions[f'shaply_value_{i}'][sample_row]
+                    interaction_i = np.sum(interaction_df[self.feature_names[idx]].values)
+                    interaction_df.loc[self.feature_names[idx],self.feature_names[idx]] = shaply_value_i - interaction_i
+                self.interaction_values.append(interaction_df)
         return self.interaction_values
 
 

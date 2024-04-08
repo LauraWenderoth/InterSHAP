@@ -174,12 +174,12 @@ def clustering(X, pca=False, n_clusters=20, n_components=5):
     return kmeans.labels_, X
 
 if __name__ == "__main__":
-    use_wandb = True
+    use_wandb = False
     results = dict()
     data_root_path = Path('/home/lw754/masterproject/PID/synthetic_data/')
     results_path = Path('/home/lw754/masterproject/cross-modal-interaction/results')
-    label = ''  # 'OR_' XOR_
-    settings = ['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'] #['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'] #
+    label = 'VEC2_'  # 'OR_' XOR_ VEC2_
+    settings = ['synergy']#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'] #['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'] #['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'] #
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
     if use_wandb:
