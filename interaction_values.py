@@ -227,12 +227,14 @@ class MultiModalExplainer(Explainer):
                     shaply_value_i = df_coalitions[f'shaply_value_{i}'][sample_row]
                     interaction_i = np.sum(interaction_df[self.feature_names[idx]].values)
                     interaction_df.loc[self.feature_names[idx],self.feature_names[idx]] = shaply_value_i - interaction_i
-                self.interaction_values.append(interaction_df)
+                if output_class not in self.interaction_values:
+                    self.interaction_values[output_class] = []
+                self.interaction_values[output_class].append(interaction_df)
         return self.interaction_values
 
 
 
-    def interaction_metric(self):
+    def interaction_metric(self,output_class='best'):
         '''
         best = self.coalitions['best']
         ones_columns = [col for col in best.columns if '1' in col and '0' not in col]
@@ -244,12 +246,12 @@ class MultiModalExplainer(Explainer):
         self.coalitions['best']['cross_modal_interaction'] = interaction_score
         '''
         interaction_score = []
-        for interaction_df in self.interaction_values:
+        for interaction_df in self.interaction_values[output_class]:
             identity_mask = np.eye(interaction_df.shape[0])
             shaply_values = np.sum(np.abs(interaction_df.values))
             interaction_values = np.sum(np.abs((1 - identity_mask) * interaction_df.values))
             interaction_score.append(interaction_values/shaply_values)
-        self.coalitions['best']['cross_modal_interaction'] = interaction_score
+        self.coalitions[output_class]['cross_modal_interaction'] = interaction_score
         return interaction_score
 
     def __call__(self, X):

@@ -191,7 +191,7 @@ if __name__ == "__main__":
             shaply_values = explaination.values
             interaction_values = explainer.shaply_interaction_values()
             interaction_score = explainer.interaction_metric()
-            our_metric = [np.sum(interaction.values) for interaction in interaction_values]
+            our_metric = [np.sum(interaction.values) for interaction in interaction_values['best']]
             if args.use_wandb:
                 run_results = {'seed':seed}
                 test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
@@ -218,7 +218,7 @@ if __name__ == "__main__":
                 wandb.log(cross_modal_results)
 
                 ### SRI
-                SRI_result =SRI_normalise(interaction_values, args.n_modality)
+                SRI_result =SRI_normalise(interaction_values['best'], args.n_modality)
                 run_results.update(SRI_result)
                 wandb.log(SRI_result)
 
@@ -238,7 +238,7 @@ if __name__ == "__main__":
             for key, df in explainer.coalitions.items():
                 df.to_csv(save_path / f"{key}.csv", index=False)
             shaply_values.to_csv(save_path / f"shap_values_best.csv", index=False)
-            interaction_values = np.array(interaction_values)
+            interaction_values = np.array(interaction_values['best'])
             mask = np.eye(interaction_values.shape[1], dtype=bool)
             result = interaction_values[:, ~mask]
             df_interaction_values = pd.DataFrame(result)
