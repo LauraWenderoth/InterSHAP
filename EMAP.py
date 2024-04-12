@@ -9,7 +9,7 @@ import torch
 import pickle
 from pathlib import Path
 from dataloader import MMDataset
-from models import MMFeedForwardNN,FeedForwardNN
+from models import LateFusionFeedForwardNN,EarlyFusionFeedForwardNN, IntermediateFusionFeedForwardNN
 from utils import  eval_model
 from tqdm.auto import tqdm
 

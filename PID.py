@@ -174,12 +174,12 @@ def clustering(X, pca=False, n_clusters=20, n_components=5):
     return kmeans.labels_, X
 
 if __name__ == "__main__":
-    use_wandb = False
+    use_wandb = True
     results = dict()
     data_root_path = Path('/home/lw754/masterproject/PID/synthetic_data/')
     results_path = Path('/home/lw754/masterproject/cross-modal-interaction/results')
-    label = 'VEC2_'  # 'OR_' XOR_ VEC2_
-    settings = ['synergy']#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'] #['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'] #['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'] #
+    label = ''  # 'OR_' XOR_ VEC2_
+    settings = ['syn_mix10-5-0','syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0',]#['syn_mix9', 'syn_mix92' ]#['syn_mix2', 'syn_mix5', 'syn_mix10']#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'] #['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'] #['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'] #
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
     if use_wandb:
@@ -211,6 +211,9 @@ if __name__ == "__main__":
         results[setting] = result
         print()
 
+    save_path = results_path / f'{label}DATA_PID_results.pickle'
+    save_data(results, save_path)
+
     if use_wandb:
         wandb.log(results)
         df = pd.DataFrame.from_dict(results, orient='index')
@@ -220,5 +223,3 @@ if __name__ == "__main__":
 
         wandb.finish()
 
-    save_path = results_path/ f'{label}DATA_PID_results.pickle'
-    save_data(results, save_path)

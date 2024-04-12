@@ -23,7 +23,7 @@ class MMDataset(Dataset):
 
     def __getitem__(self, idx):
         label = torch.tensor(self.y[idx])
-        if self.concat:
+        if self.concat == 'early':
             features = torch.tensor(self.X[idx], dtype=torch.float)
         else:
             features = [torch.tensor(modality[idx], dtype=torch.float) for modality in self.X]
