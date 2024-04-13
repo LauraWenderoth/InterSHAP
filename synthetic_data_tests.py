@@ -23,18 +23,19 @@ def parse_args():
     # Add arguments
     parser.add_argument('--train_model', default=True, help='Whether to train the model or just eval')
     parser.add_argument('--seeds', nargs='+', type=int, default=[1, 42, 113], help='List of seed values')
-    parser.add_argument('--use_wandb', default=False, help='Whether to use wandb or not')
+    parser.add_argument('--use_wandb', default=True, help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=5000, help='Batch size for training')
-    parser.add_argument('--n_samples_for_interaction', type=int, default=100, help='Number of samples for interaction')
-    parser.add_argument('--epochs', type=int, default=50, help='Number of epochs for training')
+    parser.add_argument('--n_samples_for_interaction', type=int, default=1000, help='Number of samples for interaction')
+    parser.add_argument('--epochs', type=int, default=1, help='Number of epochs for training')
     parser.add_argument('--n_modality', type=int, default=2, help='Number of modalities')
-    parser.add_argument('--settings', nargs='+', type=str, default= ['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
+    parser.add_argument('--settings', nargs='+', type=str, default= ['redundancy', 'synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'], #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
                         choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'], help='List of settings')
-    parser.add_argument('--concat', default = 'late',  help='early, intermediate, late')
+    parser.add_argument('--concat', default = 'intermediate', choices='early, intermediate, late', help='early, intermediate, late')
     parser.add_argument('--label', type=str, default='', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
-
+    parser.add_argument('--cross_modal_scores_during_training', default=False, help='early, intermediate, late')
+    parser.add_argument('--train_uni_model', default=False, help='Whether to train the model or just eval')
     args = parser.parse_args()
     return args
 
@@ -153,7 +154,50 @@ if __name__ == "__main__":
                 {'batch_size': args.batch_size, 'n_samples_for_interaction': args.n_samples_for_interaction, 'epochs': args.epochs,
                  'concat': args.concat, 'setting': setting, 'data_path': data_path, 'save_path': save_path_run})
 
+
         for seed in args.seeds:
+            run_results = {'seed': seed}
+            print(f'Seed {seed}')
+            if args.train_uni_model:
+
+                for i_modality in range(args.n_modality):
+                    print(f'Start uni-modal with modality {i_modality}')
+                    experiment_name = f'{experiment_name_run}/unimodal_{i_modality}'
+                    save_path = root_save_path / experiment_name
+                    with open(data_path, 'rb') as f:
+                        data = pickle.load(f)
+                    # visualize_umap(data, n_modality, args.label, setting)
+                    test_data = data['test'][str(i_modality)][:args.n_samples_for_interaction]
+                    val_data = data['valid'][str(i_modality)]
+                    train_data = data['train'][str(i_modality)]
+                    train_label = np.squeeze(data['train']['label'])
+
+                    test_dataset = MMDataset(test_data,
+                                             np.squeeze(data['test']['label'][:args.n_samples_for_interaction]),
+                                             device=args.device, concat='early')
+                    val_dataset = MMDataset(val_data, np.squeeze(data['valid']['label']), concat='early',
+                                            device=args.device)
+                    train_loader = DataLoader(MMDataset(train_data, train_label, concat='early', device=args.device),
+                                              batch_size=args.batch_size,
+                                              shuffle=True, num_workers=0)
+                    val_loader = DataLoader(val_dataset, batch_size=args.batch_size,
+                                            shuffle=True, num_workers=0)
+
+                    input_size = train_data.shape[1]
+
+                    model = train(args.device, train_loader, val_loader, save_path, use_wandb=args.use_wandb,
+                                  num_epochs=args.epochs,
+                                  test_inverval=10, input_size=input_size, output_size=len(np.unique(train_label)),
+                                  experiment_name=setting, concat='early', seed=seed)
+                    if args.use_wandb:
+                        print(f'\nEvaluation Unimodal Seed {seed}')
+
+                        test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
+                                                 shuffle=True, num_workers=0)
+                        test_results, _ = eval_model(test_loader, model, args.device, title=f'Test_unimodal_{i_modality}', use_wandb=True)
+                        run_results.update(test_results)
+
+            print('Start multi-modal')
             experiment_name = f'{experiment_name_run}/seed_{seed}'
             save_path = root_save_path / experiment_name
             with open(data_path, 'rb') as f:
@@ -191,12 +235,13 @@ if __name__ == "__main__":
                 model = torch.load(model_weights)
                 model.to(args.device)
             if args.concat == 'early':
+                #TODO wofür brauche ich das??
                 input_size = [input_size // 2, input_size // 2]
 
 
             if args.use_wandb:
                 print(f'\nEvaluation Seed {seed}')
-                run_results = {'seed': seed}
+
                 test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
                                          shuffle=True, num_workers=0)
                 test_results, _ = eval_model(test_loader, model, args.device, title='Test', use_wandb=True)
@@ -220,7 +265,8 @@ if __name__ == "__main__":
                 wandb.log(cross_modal_results)
 
                 #### EMAP
-                projection_logits, y = calculate_EMAP(model, test_dataset, device=args.device, concat=args.concat,
+                concat = True if args.concat == 'early' else False
+                projection_logits, y = calculate_EMAP(model, test_dataset, device=args.device, concat=concat,
                                                       len_modality=input_size[0])
                 results_emap,_ = evaluate_emap(projection_logits, y, title='Emap', use_wandb=True)
                 run_results.update(results_emap)

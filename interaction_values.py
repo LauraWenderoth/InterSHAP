@@ -40,7 +40,7 @@ def powerset(lst):
     return powerset_masks[sorted_indices[::-1]]
 class MultiModalExplainer(Explainer):
     def __init__(self, model, data, modality_shapes, classes = 2, max_samples = 100, feature_names=None,concat =False, device='cuda:0' if torch.cuda.is_available() else 'cpu',random_masking=100):
-        self.concat = concat
+        self.concat = True if concat =='early' else False
 
         self.device = device
         self.model = model
@@ -183,9 +183,12 @@ class MultiModalExplainer(Explainer):
                         shaply_value += weight * (result_S_i-result_S)
                     self.coalitions[output_class].loc[sample_row, shaply_value_column] = shaply_value
 
+    def get_output_classes(self):
+        output_classes = list(self.coalitions.keys())
+        return [s for s in output_classes if s != 'best']
+
     def shaply_interaction_values(self):
         modality_arrays = [np.eye(self.number_modalities, dtype=int)[i] for i in range(self.number_modalities)]
-        output_class = 'best'
         interaction_column = 'interaction_sum_abs'
         for output_class in self.coalitions.keys():
             df_coalitions = self.coalitions[output_class]
@@ -252,7 +255,7 @@ class MultiModalExplainer(Explainer):
             interaction_values = np.sum(np.abs((1 - identity_mask) * interaction_df.values))
             interaction_score.append(interaction_values/shaply_values)
         self.coalitions[output_class]['cross_modal_interaction'] = interaction_score
-        return interaction_score
+        return {'cross_modal_rel':interaction_score}
 
     def __call__(self, X):
         start_time = time.time()
