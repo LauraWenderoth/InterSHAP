@@ -1,36 +1,34 @@
 import pickle
 import wandb
-import fusilli
-from fusilli.fusionmodels.tabularfusion.crossmodal_att import TabularCrossmodalMultiheadAttention
 import pandas as pd
-from interaction_values import MultiModalExplainer
+
 import random
 import numpy as np
 from pathlib import Path
-from EMAP import evaluate_emap, calculate_EMAP
+
 import torch
 from tqdm import tqdm
 from torch.utils.data import  DataLoader
 from dataloader import MMDataset
 from models import LateFusionFeedForwardNN,EarlyFusionFeedForwardNN,IntermediateFusionFeedForwardNN
-from utils import  eval_model, save_checkpoint
+from utils.utils import  eval_model, save_checkpoint
+from synergy_evaluation.evaluation import eval_synergy
 import argparse
-from SRI import SRI_normalise
-from SHAPE import cross_modal_SHAPE
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Argument Parser for your settings')
 
     # Add arguments
     parser.add_argument('--train_model', default=True, help='Whether to train the model or just eval')
-    parser.add_argument('--seeds', nargs='+', type=int, default=[1, 42, 113], help='List of seed values')
-    parser.add_argument('--use_wandb', default=True, help='Whether to use wandb or not')
+    parser.add_argument('--seeds', nargs='+', type=int, default=[1, 42,113 ], help='List of seed values')
+    parser.add_argument('--use_wandb', default=False, help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=5000, help='Batch size for training')
-    parser.add_argument('--n_samples_for_interaction', type=int, default=1000, help='Number of samples for interaction')
+    parser.add_argument('--n_samples_for_interaction', type=int, default=100, help='Number of samples for interaction')
     parser.add_argument('--epochs', type=int, default=1, help='Number of epochs for training')
     parser.add_argument('--n_modality', type=int, default=2, help='Number of modalities')
-    parser.add_argument('--settings', nargs='+', type=str, default= ['redundancy', 'synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'], #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
+    parser.add_argument('--settings', nargs='+', type=str, default= [ 'redundancy', 'synergy' ],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
                         choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'], help='List of settings')
-    parser.add_argument('--concat', default = 'intermediate', choices='early, intermediate, late', help='early, intermediate, late')
+    parser.add_argument('--concat', default = 'late', choices='early, intermediate, late', help='early, intermediate, late')
     parser.add_argument('--label', type=str, default='', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
@@ -65,6 +63,7 @@ def print_latex_results_table(stats_dict):
     latex_table += "\\end{table}"
 
     print(latex_table)
+
 
 
 def train_epoch(train_dataloader, model, optimizer,device):
@@ -144,7 +143,7 @@ if __name__ == "__main__":
     for setting in args.settings:
         print('################################################')
         print(f'Start setting {setting}')
-        final_results = dict()
+
         data_path = f'/home/lw754/masterproject/PID/synthetic_data/{args.label}DATA_{setting}.pickle'
         experiment_name_run = f'{args.label}{setting}_epochs_{args.epochs}_concat_{args.concat}'
         save_path_run = root_save_path/experiment_name_run
@@ -244,81 +243,13 @@ if __name__ == "__main__":
 
                 test_loader = DataLoader(test_dataset, batch_size=args.batch_size,
                                          shuffle=True, num_workers=0)
-                test_results, _ = eval_model(test_loader, model, args.device, title='Test', use_wandb=True)
+                test_results, _,y_pred_test = eval_model(test_loader, model, args.device, title='Test', use_wandb=True,return_predictions=True)
                 run_results.update(test_results)
-
-                # cross-modal interaction value
-                #### cross modal
-
-                explainer = MultiModalExplainer(model=model, data=val_dataset, modality_shapes=input_size,
-                                                feature_names=['0', '1'], classes=2, concat=args.concat)
-                explaination = explainer(test_dataset)
-                shaply_values = explaination.values
-                interaction_values = explainer.shaply_interaction_values()
-
-                cross_modal_results = dict()
-                for output_class in explainer.coalitions.keys() :
-                    cm_result = explainer.interaction_metric(output_class=output_class)
-                    for key in cm_result.keys():
-                        cross_modal_results[f'{output_class}_{key}'] = np.mean(cm_result[key], axis=0)
-                run_results.update(cross_modal_results)
-                wandb.log(cross_modal_results)
-
-                #### EMAP
-                concat = True if args.concat == 'early' else False
-                projection_logits, y = calculate_EMAP(model, test_dataset, device=args.device, concat=concat,
-                                                      len_modality=input_size[0])
-                results_emap,_ = evaluate_emap(projection_logits, y, title='Emap', use_wandb=True)
-                run_results.update(results_emap)
-                emap_gap = {}
-                for (key_results, value_results), (key_results_emap, value_results_emap) in zip(test_results.items(),
-                                                                                                results_emap.items()):
-                    assert key_results.split("_")[1] == key_results_emap.split("_")[1], "Keys do not match!"
-                    key = '_'.join(['emap_gap'] + key_results.split("_")[1:])
-                    emap_gap[key] = abs(value_results - value_results_emap)
-                run_results.update(emap_gap)
-                wandb.log(emap_gap)
-
-
-                ### SRI
-                # TODO adapt for different output_classes
-                SRI_results = dict()
-                for output_class in explainer.coalitions.keys() :
-                    SRI_result = SRI_normalise(interaction_values[output_class], args.n_modality)
-                    for key in SRI_result.keys():
-                        SRI_results[f'{output_class}_{key}'] = SRI_result[key]
-                run_results.update(SRI_results)
-                wandb.log(SRI_results)
-
-                #### SHAPE
-                SHAPE_results = dict()
-                for output_class in explainer.coalitions.keys():
-                    coalition_values = explainer.coalitions[output_class]
-                    coalition_values= coalition_values.iloc[:, :(2 ** args.n_modality)]
-                    SHAPE_result = cross_modal_SHAPE(coalition_values,args.n_modality)
-                    for key in SHAPE_result.keys():
-                        SHAPE_results[f'{output_class}_{key}'] = SHAPE_result[key]
-                run_results.update(SHAPE_results)
-                wandb.log(SHAPE_results)
-
-                ######## store interactions ######
-                for key, score in run_results.items():
-                    if key not in final_results:
-                        final_results[key] = []
-                    final_results[key].append(score)
-
-                for key, df in explainer.coalitions.items():
-                    df.to_csv(save_path / f"{key}.csv", index=False)
-                shaply_values.to_csv(save_path / f"shap_values_best.csv", index=False)
-                interaction_values = np.array(interaction_values['best'])
-                mask = np.eye(interaction_values.shape[1], dtype=bool)
-                result = interaction_values[:, ~mask]
-                df_interaction_values = pd.DataFrame(result)
-                df_interaction_values.to_csv(save_path / f"interaction_index.csv", index=False)
-
-
-
-
+                test_data_model_pred = {'0':data['test']['0'][:args.n_samples_for_interaction], '1':
+                             data['test']['1'][:args.n_samples_for_interaction],'label':y_pred_test}
+                final_results = eval_synergy(model, val_dataset, test_dataset, test_data_model_pred, run_results, save_path, input_size,
+                             n_modalites=args.n_modality, device=args.device, test_results=test_results, concat=args.concat, use_wandb=args.use_wandb,
+                             n_samples_for_interaction=args.n_samples_for_interaction)
 
         if args.use_wandb:
             # calculate mean and std for each eval metric

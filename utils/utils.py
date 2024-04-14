@@ -6,6 +6,7 @@ from sklearn.metrics import f1_score, confusion_matrix, recall_score, precision_
 import torch
 import pickle
 
+
 def save_data(data, save_path):
     with open(save_path, 'wb') as f:
         pickle.dump(data, f)
@@ -23,7 +24,7 @@ def load_checkpoint(model, path):
     model.load_state_dict(best_checkpoint)
     return best_checkpoint
 
-def eval_model(dataloader, model,device,title='Val',use_wandb=False):
+def eval_model(dataloader, model,device,title='Val',use_wandb=False,return_predictions=False):
     model.eval()
     probas = []
     y_true = []
@@ -61,4 +62,7 @@ def eval_model(dataloader, model,device,title='Val',use_wandb=False):
             class_names=class_names)
 
         wandb.log({"conf_mat": cm})
+    if return_predictions:
+        return results, conf_matrix, predictions
     return results,conf_matrix
+

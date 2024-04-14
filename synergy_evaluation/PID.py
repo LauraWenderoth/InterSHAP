@@ -10,7 +10,7 @@ import cvxpy as cp
 from cvxpy import *
 import numpy as np
 from scipy.special import rel_entr
-from utils import save_data
+from utils.utils import save_data
 
 def solve_Q_new(P: np.ndarray):
     '''
@@ -63,7 +63,7 @@ def solve_Q_new(P: np.ndarray):
     try:
         prob.solve(verbose=False, max_iters=10000,solver=cp.ECOS)
     except:
-        prob.solve(solver=cp.ECOS, verbose=False, max_iters=10000)
+        prob.solve(solver=cp.SCS, verbose=True, max_iters=10000)
 
     # print(prob.status)
     # print(prob.value)
@@ -118,7 +118,7 @@ def UI(P, cond_id=0):
     assert False
 
   return sum
-def get_measure(P,do_round=True):
+def get_measure(P,do_round=True,metric='PID'):
   Q = solve_Q_new(P)
   redundancy = CoI(Q)
   unique_1 = UI(Q, cond_id=1)
@@ -135,7 +135,7 @@ def get_measure(P,do_round=True):
   print('Unique 1', unique_2)
   print('Synergy', synergy)
 
-  return {'redundancy':redundancy, 'unique0':unique_1, 'unique1':unique_2, 'synergy':synergy}
+  return {f'{metric}_redundancy':redundancy, f'{metric}_unique0':unique_1, f'{metric}_unique1':unique_2, f'{metric}_synergy':synergy}
 
 def extract_categorical_from_data(x):
   supp = set(x)
@@ -174,7 +174,7 @@ def clustering(X, pca=False, n_clusters=20, n_components=5):
     return kmeans.labels_, X
 
 if __name__ == "__main__":
-    use_wandb = True
+    use_wandb = False
     results = dict()
     data_root_path = Path('/home/lw754/masterproject/PID/synthetic_data/')
     results_path = Path('/home/lw754/masterproject/cross-modal-interaction/results')

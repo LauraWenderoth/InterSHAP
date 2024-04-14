@@ -10,7 +10,6 @@ import pickle
 from pathlib import Path
 from dataloader import MMDataset
 from models import LateFusionFeedForwardNN,EarlyFusionFeedForwardNN, IntermediateFusionFeedForwardNN
-from utils import  eval_model
 from tqdm.auto import tqdm
 
 def evaluate_emap(logits, y_true,title='Val',use_wandb=False):
@@ -147,8 +146,6 @@ if __name__ == "__main__":
     if concat:
         input_size = input_size // 2
 
-
-    eval_model(test_loader, model, device=device, title='Test', use_wandb=False)
     projection_logits, y = calculate_EMAP(model, test_dataset,device=device,concat=concat,len_modality=input_size)
     evaluate_emap(projection_logits, y,  title='Val', use_wandb=False)
 
