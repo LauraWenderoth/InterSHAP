@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+
 class IntermediateFusionFeedForwardNN(nn.Module):
     def __init__(self, input_size, output_size):
         device = 'cuda:0' if torch.cuda.is_available() else 'cpu'

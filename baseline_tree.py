@@ -1,39 +1,10 @@
 import pickle
-import os
 import shap
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
 import numpy as np
 from pathlib import Path
-from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
-from sklearn.metrics import f1_score, confusion_matrix, recall_score, precision_score, accuracy_score,balanced_accuracy_score
-from functools import reduce
-import pandas as pd
-from interaction_values import MultiModalExplainer
-import random
-import torch.nn.functional as F
-import numpy as np
-from pathlib import Path
-from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
-from sklearn.metrics import f1_score, confusion_matrix, recall_score, precision_score, accuracy_score,balanced_accuracy_score
-from functools import reduce
+from sklearn.metrics import f1_score, recall_score, precision_score, accuracy_score
 import torch
-from tqdm import tqdm
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import  DataLoader
-from dataloader import MMDataset
 
 if __name__ == "__main__":
     batch_size = 1000

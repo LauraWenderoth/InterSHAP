@@ -63,6 +63,24 @@ def eval_model(dataloader, model,device,title='Val',use_wandb=False,return_predi
 
         wandb.log({"conf_mat": cm})
     if return_predictions:
-        return results, conf_matrix, predictions
+        return results, predictions
     return results,conf_matrix
 
+def train_epoch(train_dataloader, model, optimizer,device):
+    model.train()
+    epoch_loss = 0
+    criterion = torch.nn.CrossEntropyLoss(reduction='none')
+    for i, data in enumerate(train_dataloader):
+        features, labels = data
+        labels = labels.to(device)
+        try:
+            features = features.to(device)
+        except:
+            features = [feat.to(device) for feat in features]
+        optimizer.zero_grad()
+        logits = model(features)
+        loss = torch.mean(criterion(logits, labels))
+        loss.backward()
+        optimizer.step()
+        epoch_loss += loss.item()
+    return model, epoch_loss

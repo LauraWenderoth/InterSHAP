@@ -40,7 +40,7 @@ def powerset(lst):
     return powerset_masks[sorted_indices[::-1]]
 class MultiModalExplainer(Explainer):
     def __init__(self, model, data, modality_shapes, classes = 2, max_samples = 100, feature_names=None,concat =False, device='cuda:0' if torch.cuda.is_available() else 'cpu',random_masking=100):
-        self.concat = True if concat =='early' else False
+        self.concat = concat
 
         self.device = device
         self.model = model
@@ -135,6 +135,7 @@ class MultiModalExplainer(Explainer):
                     self.coalitions['best'].loc[i, str(subset)] = predictions[best]
 
     def calc_base_values(self,X, model):
+        X.set_length(self.max_samples)
         model_predictions = []
         X = DataLoader(X,
                               batch_size=1,
@@ -144,7 +145,7 @@ class MultiModalExplainer(Explainer):
                               multiprocessing_context="fork",
                               persistent_workers=True,
                               prefetch_factor=2)
-        for sample in tqdm(X, desc="base value extraction", total=self.max_samples):
+        for sample in tqdm(X, desc="base value extraction"):
             features = reduce_data(sample)
             # only move to GPU now (use CPU for preprocessing)
             if self.concat:
@@ -181,7 +182,8 @@ class MultiModalExplainer(Explainer):
                         result_S_i = self.coalitions[output_class][S_i][sample_row]
                         result_S = self.coalitions[output_class][S][sample_row]
                         shaply_value += weight * (result_S_i-result_S)
-                    self.coalitions[output_class].loc[sample_row, shaply_value_column] = shaply_value
+                    self.coalitions[output_class].loc[sample_row, shaply_value_column] = shaply_value.astype(
+                        self.coalitions[output_class].loc[sample_row, shaply_value_column].dtype)
 
     def get_output_classes(self):
         output_classes = list(self.coalitions.keys())
@@ -223,13 +225,14 @@ class MultiModalExplainer(Explainer):
                             interaction_row.append(0)
                     interactions.append(interaction_row)
 
-                self.coalitions[output_class].loc[sample_row, interaction_column] = np.sum(np.abs(interactions))
-                # calculate phi_ii
-                interaction_df = pd.DataFrame(interactions, columns=[self.feature_names], index=[self.feature_names])
+                    self.coalitions[output_class].loc[sample_row, interaction_column] = np.sum(
+                        np.abs(interactions)).astype(
+                        self.coalitions[output_class].loc[sample_row, interaction_column].dtype)
+                    interaction_df = pd.DataFrame(interactions, columns=[self.feature_names], index=[self.feature_names])
                 for idx,i in enumerate(modality_arrays):
                     shaply_value_i = df_coalitions[f'shaply_value_{i}'][sample_row]
                     interaction_i = np.sum(interaction_df[self.feature_names[idx]].values)
-                    interaction_df.loc[self.feature_names[idx],self.feature_names[idx]] = shaply_value_i - interaction_i
+                    interaction_df.loc[self.feature_names[idx],self.feature_names[idx]] = (shaply_value_i - interaction_i).astype(np.float64)
                 if output_class not in self.interaction_values:
                     self.interaction_values[output_class] = []
                 self.interaction_values[output_class].append(interaction_df)

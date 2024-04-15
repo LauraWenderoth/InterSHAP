@@ -8,8 +8,8 @@ import collections
 import torch
 import pickle
 from pathlib import Path
-from dataloader import MMDataset
-from models import LateFusionFeedForwardNN,EarlyFusionFeedForwardNN, IntermediateFusionFeedForwardNN
+from utils.dataset import MMDataset
+from utils.models import LateFusionFeedForwardNN,EarlyFusionFeedForwardNN, IntermediateFusionFeedForwardNN
 from tqdm.auto import tqdm
 
 def evaluate_emap(logits, y_true,title='Val',use_wandb=False):
@@ -70,6 +70,7 @@ def emap(idx2logits):
     projected_preds = np.vstack(projected_preds)
     return projected_preds
 def calculate_EMAP(model,X,device,concat=False,len_modality=None):
+    # TODO rewrite modality for mods with different shapes
     assert not (concat and len_modality is None), 'Need number (len_modality) to split tensor'
     results_emap = collections.defaultdict(lambda: collections.defaultdict(dict))
     y = []
