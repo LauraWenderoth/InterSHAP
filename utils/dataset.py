@@ -34,7 +34,7 @@ class MMDataset(Dataset):
         if self.concat:
             self.X = np.concatenate(self.X,axis=1)
 
-        assert len(self.X) == len(self.y) or all(isinstance(sublist, list) and len(sublist) == len(self.y) for sublist in self.X), \
+        assert len(self.X) == len(self.y) or all((isinstance(sublist, list) or isinstance(sublist, np.ndarray)) and len(sublist) == len(self.y) for sublist in self.X), \
             "Inconsistent data: X must be either a single list with the same length as y or a list of lists with each sublist having the same length as y"
         if length is not None:
             self.set_length(length)

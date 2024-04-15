@@ -30,12 +30,12 @@ def parse_args():
     parser.add_argument('--test_inverval', type=int, default=10, help='Eval interval during traing (int = number of epochs)')
     parser.add_argument('--settings', nargs='+', type=str, default= ['synergy' ],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
                         choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'], help='List of settings')
-    parser.add_argument('--concat', default = 'early', choices='early, intermediate, late', help='early, intermediate, late')
+    parser.add_argument('--concat', default = 'intermediate', choices='early, intermediate, late', help='early, intermediate, late')
     parser.add_argument('--label', type=str, default='', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
     parser.add_argument('--cross_modal_scores_during_training', default=False, help='early, intermediate, late')
-    parser.add_argument('--train_uni_model', default=False, help='Whether to train the model or just eval')
+    parser.add_argument('--train_uni_model', default=True, help='Whether to train the model or just eval')
     parser.add_argument('--synergy_eval_epoch', default=False, help='Whether to eval synergy metrics during training')
     parser.add_argument('--synergy_metrics', nargs='+', type=int, default=['PID','SHAPE','EMAP','SRI','Interaction'], help='List of seed values')
     parser.add_argument('--save_results', default=True, help='Whether to locally save results or not')
@@ -84,14 +84,13 @@ def train(device,train_dataloader, val_dataloader, save_path, use_wandb, experim
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
 
-    input_size = np.sum(modality_shape)
 
     if concat=='early':
-        model =EarlyFusionFeedForwardNN(input_size, output_size)
+        model =EarlyFusionFeedForwardNN(np.sum(modality_shape), output_size)
     elif concat =='intermediate':
-        model = IntermediateFusionFeedForwardNN(input_size, output_size)
+        model = IntermediateFusionFeedForwardNN(modality_shape, output_size)
     elif concat == 'late':
-        model = LateFusionFeedForwardNN(input_size, output_size)
+        model = LateFusionFeedForwardNN(modality_shape, output_size)
     else:
         print('No valid model selected')
         model = None
