@@ -39,7 +39,7 @@ def powerset(lst):
     sorted_indices = np.lexsort(np.rot90(powerset_masks))
     return powerset_masks[sorted_indices[::-1]]
 class MultiModalExplainer(Explainer):
-    def __init__(self, model, data, modality_shapes, classes = 2, max_samples = 100, feature_names=None,concat =False, device='cuda:0' if torch.cuda.is_available() else 'cpu',random_masking=100):
+    def __init__(self, model, data, modality_shapes, classes = 2, max_samples = 1500, feature_names=None,concat =False, device='cuda:0' if torch.cuda.is_available() else 'cpu',random_masking=100):
         self.concat = concat
 
         self.device = device
@@ -110,7 +110,7 @@ class MultiModalExplainer(Explainer):
         return np.mean(model_predictions,axis=0).squeeze()
 
     def calculate_coaliton_values(self,X,model):
-        for i, sample in enumerate(tqdm(X,desc="Coalition Values")):
+        for i, sample in enumerate(tqdm(X,desc="Coalition Values",miniters=1)):
             self.explain_data.append(sample)
             data = reduce_data(sample)
             best = -1
@@ -145,7 +145,7 @@ class MultiModalExplainer(Explainer):
                               multiprocessing_context="fork",
                               persistent_workers=True,
                               prefetch_factor=2)
-        for sample in tqdm(X, desc="base value extraction"):
+        for sample in tqdm(X, desc="base value extraction",miniters=1):
             features = reduce_data(sample)
             # only move to GPU now (use CPU for preprocessing)
             if self.concat:
@@ -166,7 +166,7 @@ class MultiModalExplainer(Explainer):
 
             for modality_array in modality_arrays:
                 shaply_value_column = f'shaply_value_{modality_array}'
-                self.coalitions[output_class][shaply_value_column] = 0
+                self.coalitions[output_class][shaply_value_column] = 0.0
                 for sample_row in range(len(self.coalitions[output_class])):
                     modality_index = np.where(modality_array == 1)[0][0]
                     filtered_rows = powerset_array[np.where(powerset_array[:, modality_index] == 0)]
@@ -182,8 +182,7 @@ class MultiModalExplainer(Explainer):
                         result_S_i = self.coalitions[output_class][S_i][sample_row]
                         result_S = self.coalitions[output_class][S][sample_row]
                         shaply_value += weight * (result_S_i-result_S)
-                    self.coalitions[output_class].loc[sample_row, shaply_value_column] = shaply_value.astype(
-                        self.coalitions[output_class].loc[sample_row, shaply_value_column].dtype)
+                    self.coalitions[output_class].loc[sample_row, shaply_value_column] = shaply_value
 
     def get_output_classes(self):
         output_classes = list(self.coalitions.keys())
@@ -194,7 +193,7 @@ class MultiModalExplainer(Explainer):
         interaction_column = 'interaction_sum_abs'
         for output_class in self.coalitions.keys():
             df_coalitions = self.coalitions[output_class]
-            self.coalitions[output_class][interaction_column] = 0
+            self.coalitions[output_class][interaction_column] = 0.0
             for sample_row in range(len(df_coalitions)):
                 interactions = []
                 for i in modality_arrays:
@@ -226,13 +225,12 @@ class MultiModalExplainer(Explainer):
                     interactions.append(interaction_row)
 
                     self.coalitions[output_class].loc[sample_row, interaction_column] = np.sum(
-                        np.abs(interactions)).astype(
-                        self.coalitions[output_class].loc[sample_row, interaction_column].dtype)
+                        np.abs(interactions))
                     interaction_df = pd.DataFrame(interactions, columns=[self.feature_names], index=[self.feature_names])
                 for idx,i in enumerate(modality_arrays):
                     shaply_value_i = df_coalitions[f'shaply_value_{i}'][sample_row]
                     interaction_i = np.sum(interaction_df[self.feature_names[idx]].values)
-                    interaction_df.loc[self.feature_names[idx],self.feature_names[idx]] = (shaply_value_i - interaction_i).astype(np.float64)
+                    interaction_df.loc[self.feature_names[idx],self.feature_names[idx]] = shaply_value_i - interaction_i
                 if output_class not in self.interaction_values:
                     self.interaction_values[output_class] = []
                 self.interaction_values[output_class].append(interaction_df)

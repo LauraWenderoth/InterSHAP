@@ -2,7 +2,7 @@ import pandas as pd
 from .EMAP import evaluate_emap, calculate_EMAP
 from .PID import clustering, convert_data_to_distribution, get_measure
 from .SRI import SRI_normalise
-from .SHAPE import cross_modal_SHAPE
+from .SHAPE import cross_modal_SHAPE, org_SHAPE
 from .interaction_values import MultiModalExplainer
 from utils.utils import eval_model
 from torch.utils.data import  DataLoader
@@ -111,6 +111,9 @@ def eval_synergy(model,val_dataset,test_dataset,device, eval_metrics = ['PID','S
             for key in SHAPE_result.keys():
                 SHAPE_results[f'{output_class}_{key}'] = SHAPE_result[key]
         run_results.update(SHAPE_results)
+        org_SHAPE_result = org_SHAPE(test_dataset,model,batch_size,device,metric='f1_macro')
+        run_results.update(org_SHAPE_result)
+
 
     if use_wandb:
         wandb.log(run_results)

@@ -21,21 +21,21 @@ def parse_args():
 
     # Add arguments
     parser.add_argument('--train_model', default=True, help='Whether to train the model or just eval')
-    parser.add_argument('--seeds', nargs='+', type=int, default=[1], help='List of seed values')
+    parser.add_argument('--seeds', nargs='+', type=int, default=[1,42,113], help='List of seed values ')
     parser.add_argument('--use_wandb', default=True, help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=5000, help='Batch size for training')
-    parser.add_argument('--n_samples_for_interaction', type=int, default=10, help='Number of samples for interaction')
-    parser.add_argument('--epochs', type=int, default=1, help='Number of epochs for training')
+    parser.add_argument('--n_samples_for_interaction', type=int, default=100, help='Number of samples for interaction')
+    parser.add_argument('--epochs', type=int, default=150, help='Number of epochs for training')
     parser.add_argument('--n_modality', type=int, default=2, help='Number of modalities')
     parser.add_argument('--test_inverval', type=int, default=10, help='Eval interval during traing (int = number of epochs)')
-    parser.add_argument('--settings', nargs='+', type=str, default= ['synergy' ],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
+    parser.add_argument('--settings', nargs='+', type=str, default=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
                         choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'], help='List of settings')
-    parser.add_argument('--concat', default = 'intermediate', choices='early, intermediate, late', help='early, intermediate, late')
+    parser.add_argument('--concat', default = 'early', choices='early, intermediate, late', help='early, intermediate, late')
     parser.add_argument('--label', type=str, default='', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
     parser.add_argument('--cross_modal_scores_during_training', default=False, help='early, intermediate, late')
-    parser.add_argument('--train_uni_model', default=True, help='Whether to train the model or just eval')
+    parser.add_argument('--train_uni_model', default=False, help='Whether to train the model or just eval')
     parser.add_argument('--synergy_eval_epoch', default=False, help='Whether to eval synergy metrics during training')
     parser.add_argument('--synergy_metrics', nargs='+', type=int, default=['PID','SHAPE','EMAP','SRI','Interaction'], help='List of seed values')
     parser.add_argument('--save_results', default=True, help='Whether to locally save results or not')
@@ -72,19 +72,7 @@ def print_latex_results_table(stats_dict):
 
 
 
-
-
-
-def train(device,train_dataloader, val_dataloader, save_path, use_wandb, experiment_name = 'redundancy', num_epochs=100, test_inverval = 10, modality_shape=None, output_size = 2, lr = 1e-4, step_size = 500 ,concat=True,seed=42,synergy_eval_epoch=False,data=None,val_dataset=None):
-
-    # Set random seed for reproducibility
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
-
-
+def load_model(concat,modality_shape,output_size):
     if concat=='early':
         model =EarlyFusionFeedForwardNN(np.sum(modality_shape), output_size)
     elif concat =='intermediate':
@@ -94,6 +82,20 @@ def train(device,train_dataloader, val_dataloader, save_path, use_wandb, experim
     else:
         print('No valid model selected')
         model = None
+    return model
+
+
+def train(device,train_dataloader, val_dataloader, save_path, use_wandb, experiment_name = 'redundancy', num_epochs=100, test_inverval = 10, modality_shape=None, output_size = 2, lr = 1e-4, step_size = 500 ,concat=True,seed=42,synergy_eval_epoch=False,dataset=None,args=None):
+
+    # Set random seed for reproducibility
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+
+
+    model = load_model(concat,modality_shape,output_size)
 
 
     #model = TabularCrossmodalMultiheadAttention( prediction_task='binary', data_dims=[64,64,None], multiclass_dimensions=None)
@@ -107,21 +109,23 @@ def train(device,train_dataloader, val_dataloader, save_path, use_wandb, experim
     print("\nMulti-modal Training")
     for epoch in tqdm(range(num_epochs ), desc="Epochs"):
         model, loss = train_epoch(train_dataloader, model, optimizer,device=device)
-        if use_wandb:
-            wandb.log({"training_loss": loss})
         scheduler.step()
         if epoch % test_inverval == 0:
-            result,y_pred_test = eval_model(val_dataloader, model,device,use_wandb=args.use_wandb, return_predictions=True)
+            result, y_pred_test = eval_model(val_dataloader, model, device, use_wandb=args.use_wandb,
+                                             return_predictions=True)
             result["epoch"] = epoch
+            result['training_loss'] = loss
             if synergy_eval_epoch:
-                test_data_model_pred = {'0': data['valid']['0'][:args.n_samples_for_interaction], '1':
-                    data['valid']['1'][:args.n_samples_for_interaction], 'label': y_pred_test[:args.n_samples_for_interaction]}
-                final_results = eval_synergy(model, val_dataset, val_dataset, test_data_model_pred, run_results, save_path,
-                                             input_size=modality_shape,
-                                             n_modalites=args.n_modality, device=args.device, test_results=dict(),
-                                             concat=args.concat, use_wandb=args.use_wandb,
-                                             n_samples_for_interaction=args.n_samples_for_interaction)
-                result.update(final_results)
+                val_dataset = dataset['valid']
+                test_dataset = dataset['test']
+                synergy_result = eval_synergy(model, val_dataset, test_dataset, device=device,
+                                               eval_metrics=args.synergy_metrics, batch_size=args.batch_size,
+                                               save_path=save_path, use_wandb=args.use_wandb,
+                                               n_samples_for_interaction=args.n_samples_for_interaction)
+                result.update(synergy_result)
+
+
+
 
             if use_wandb:
                 wandb.log(result)
@@ -177,10 +181,10 @@ if __name__ == "__main__":
             if args.train_model:
                 model = train(args.device, train_loader, val_loader, save_path, use_wandb=args.use_wandb, num_epochs=args.epochs,
                               test_inverval=args.test_inverval, modality_shape = train_data.get_modality_shapes(), output_size=train_data.get_number_classes(),
-                              experiment_name=setting,concat=args.concat,seed=seed, synergy_eval_epoch=args.synergy_eval_epoch,data=data,val_dataset=val_dataset)
+                              experiment_name=setting,concat=args.concat,seed=seed, synergy_eval_epoch=args.synergy_eval_epoch,dataset={'valid':val_dataset,'test':test_dataset },args=args)
             else:
                 model_weights = save_path / f'{setting}.pt'
-                model = torch.load(model_weights)
+                model = load_model(args.concat,train_data.get_modality_shapes(),train_data.get_number_classes())
                 model.to(args.device)
 
 

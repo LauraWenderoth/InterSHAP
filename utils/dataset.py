@@ -14,7 +14,7 @@ from PIL import Image
 
 class MMDataset(Dataset):
     def __init__(self, X,y=None,concat='early', device = 'cuda:0' if torch.cuda.is_available() else 'cpu',length=None):
-        assert isinstance(X, list) or isinstance(X, dict), "X must be a list or dict with modalities"
+        assert isinstance(X, list) or isinstance(X, dict) or isinstance(X, np.ndarray), "X must be a list or dict or np.array with modalities"
         self.X = X
         self.y = y
         if y is None:
@@ -24,6 +24,9 @@ class MMDataset(Dataset):
             except KeyError:
                 raise ValueError("'label' key is not present in the input dictionary X. Store y in 'label'")
         assert len(self.X) >= 2, "X must have at least 2 modalities"
+
+        if length is not None:
+            self.set_length(length)
         self.X_org = copy.deepcopy(self.X)
         self.modality_shape = [mod.shape[1] for mod in self.X]
         self.device = device
@@ -36,8 +39,7 @@ class MMDataset(Dataset):
 
         assert len(self.X) == len(self.y) or all((isinstance(sublist, list) or isinstance(sublist, np.ndarray)) and len(sublist) == len(self.y) for sublist in self.X), \
             "Inconsistent data: X must be either a single list with the same length as y or a list of lists with each sublist having the same length as y"
-        if length is not None:
-            self.set_length(length)
+
 
     def __len__(self):
         return len(self.y)
@@ -58,9 +60,10 @@ class MMDataset(Dataset):
         if length <=  len(self.y):
             self.y = self.y[:length]
             try:
-                self.X = self.X[:length]
-            except:
                 self.X = [mod[:length] for mod in self.X]
+            except:
+                self.X = self.X[:length]
+
 
 
 

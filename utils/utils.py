@@ -15,7 +15,7 @@ def save_data(data, save_path):
 def save_checkpoint(model, checkpoint_path, filename="checkpoint.pt"):
     os.makedirs(checkpoint_path, exist_ok=True)
     filename = os.path.join(checkpoint_path, filename)
-    torch.save(model, filename)
+    torch.save(model.state_dict(), filename)
     print(f'Model checkpoint saved to {filename}')
 
 
