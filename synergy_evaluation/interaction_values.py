@@ -57,7 +57,10 @@ class MultiModalExplainer(Explainer):
                 mod_mask = [powerset_mask[i]] * self.modalities[i]
                 mask.append(mod_mask)
             if self.concat:
-                mask = np.array(mask).flatten()
+                try:
+                    mask = np.array(mask).flatten()
+                except:
+                    mask = np.array([item for sublist in mask for item in sublist])
             self.masks.append(mask)
         self.coalitions = {}
         self.number_output = classes
@@ -73,7 +76,7 @@ class MultiModalExplainer(Explainer):
         if feature_names is not None:
             self.feature_names = feature_names
         else:
-            self.feature_names = list(self.coalitions['best'].columns)
+            self.feature_names = [str(i) for i in range(1, self.number_modalities + 1)]
 
 
 
@@ -224,9 +227,9 @@ class MultiModalExplainer(Explainer):
                             interaction_row.append(0)
                     interactions.append(interaction_row)
 
-                    self.coalitions[output_class].loc[sample_row, interaction_column] = np.sum(
-                        np.abs(interactions))
-                    interaction_df = pd.DataFrame(interactions, columns=[self.feature_names], index=[self.feature_names])
+                self.coalitions[output_class].loc[sample_row, interaction_column] = np.sum(
+                    np.abs(interactions))
+                interaction_df = pd.DataFrame(interactions, columns=[self.feature_names], index=[self.feature_names])
                 for idx,i in enumerate(modality_arrays):
                     shaply_value_i = df_coalitions[f'shaply_value_{i}'][sample_row]
                     interaction_i = np.sum(interaction_df[self.feature_names[idx]].values)
@@ -264,8 +267,7 @@ class MultiModalExplainer(Explainer):
         self.shaply_values()
         columns_with_shap = list(filter(lambda x: 'shap' in x, self.coalitions['best'].columns))
         v = self.coalitions['best'][columns_with_shap]
-        #TODO hard coded!!!
-        ev_tiled = self.coalitions['best']['[0 0]'].values
+        ev_tiled = self.coalitions['best'][str(np.zeros(self.number_modalities, dtype=int))].values
         self.expected_value = ev_tiled
 
         explanation = Explanation(

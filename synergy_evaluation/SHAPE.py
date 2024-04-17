@@ -39,7 +39,10 @@ def org_SHAPE(dataset,model,batch_size,device,metric='f1_macro'):
 
     # 3. calulate for each mod with maskin 0
     mod_contributions = []
-    X_zero = np.zeros_like(X)
+    try:
+        X_zero = np.zeros_like(X)
+    except:
+        X_zero = [np.zeros_like(mod) for mod in X]
     for i in range(len(X)):
         X_mask = X_zero.copy()
         X_mask[i] = X[i]

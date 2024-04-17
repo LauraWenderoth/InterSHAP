@@ -28,7 +28,10 @@ class MMDataset(Dataset):
         if length is not None:
             self.set_length(length)
         self.X_org = copy.deepcopy(self.X)
-        self.modality_shape = [mod.shape[1] for mod in self.X]
+        try:
+            self.modality_shape = [mod.shape[1] for mod in self.X]
+        except:
+            self.modality_shape = [len(mod[1])for mod in self.X]
         self.device = device
         self.concat = True if concat == 'early' else False
 

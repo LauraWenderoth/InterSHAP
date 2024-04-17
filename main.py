@@ -18,26 +18,25 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Argument Parser for your settings')
+    # TODO boolean flags with action
 
     # Add arguments
     parser.add_argument('--train_model', default=True, help='Whether to train the model or just eval')
-    parser.add_argument('--seeds', nargs='+', type=int, default=[1,42,113], help='List of seed values ')
+    parser.add_argument('--seeds', nargs='+', type=int, default=[1,42], help='List of seed values, 113 ')
     parser.add_argument('--use_wandb', default=True, help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=5000, help='Batch size for training')
-    parser.add_argument('--n_samples_for_interaction', type=int, default=100, help='Number of samples for interaction')
-    parser.add_argument('--epochs', type=int, default=150, help='Number of epochs for training')
-    parser.add_argument('--n_modality', type=int, default=2, help='Number of modalities')
+    parser.add_argument('--n_samples_for_interaction', type=int, default=10, help='Number of samples for interaction')
+    parser.add_argument('--epochs', type=int, default=10, help='Number of epochs for training')
     parser.add_argument('--test_inverval', type=int, default=10, help='Eval interval during traing (int = number of epochs)')
-    parser.add_argument('--settings', nargs='+', type=str, default=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
+    parser.add_argument('--settings', nargs='+', type=str, default=[ 'synergy', 'uniqueness0', 'uniqueness1','redundancy'], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
                         choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'], help='List of settings')
     parser.add_argument('--concat', default = 'early', choices='early, intermediate, late', help='early, intermediate, late')
-    parser.add_argument('--label', type=str, default='', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
+    parser.add_argument('--label', type=str, default='VEC3_', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
-    parser.add_argument('--cross_modal_scores_during_training', default=False, help='early, intermediate, late')
     parser.add_argument('--train_uni_model', default=False, help='Whether to train the model or just eval')
     parser.add_argument('--synergy_eval_epoch', default=False, help='Whether to eval synergy metrics during training')
-    parser.add_argument('--synergy_metrics', nargs='+', type=int, default=['PID','SHAPE','EMAP','SRI','Interaction'], help='List of seed values')
+    parser.add_argument('--synergy_metrics', nargs='+', type=str, default=['SHAPE','SRI','Interaction'], help="List of seed values ['SHAPE','SRI','Interaction','PID','EMAP'] ")
     parser.add_argument('--save_results', default=True, help='Whether to locally save results or not')
 
     args = parser.parse_args()
@@ -130,9 +129,9 @@ def train(device,train_dataloader, val_dataloader, save_path, use_wandb, experim
             if use_wandb:
                 wandb.log(result)
 
-            if best_f1_macro < result['Val_f1_macro']:
-                best_f1_macro = result['Val_f1_macro']
-                best_model = model
+            #if best_f1_macro < result['Val_f1_macro']:
+            #    best_f1_macro = result['Val_f1_macro']
+            best_model = model
     save_checkpoint(best_model, save_path, filename=f"{experiment_name}.pt")
     return best_model
 

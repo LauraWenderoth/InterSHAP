@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 from pathlib import Path
 import argparse
 import umap
-from utils import save_data
+from utils.utils import save_data
 import matplotlib.pyplot as plt
 import math
 
@@ -265,9 +265,9 @@ if __name__ == "__main__":
     parser.add_argument("--save_path", type=str,
                         default="/home/lw754/masterproject/PID/synthetic_data/",
                         help="Path to save the file")
-    parser.add_argument("--setting", type=str, default='synergy',
+    parser.add_argument("--setting", type=str, default='uniqueness3',
                         choices=['redundancy', 'uniqueness0', 'uniqueness1', 'synergy'], help="Data generation setting")
-    parser.add_argument('--dim_modalities', nargs='+', type=int, default=[200, 100, 150], help='List of dim for modalities')
+    parser.add_argument('--dim_modalities', nargs='+', type=int, default=[200, 100, 150, 100], help='List of dim for modalities')
 
     parser.add_argument("--label", type=str, default='VEC', help="Number of modalities")
 

@@ -25,7 +25,7 @@ def eval_synergy(model,val_dataset,test_dataset,device, eval_metrics = ['PID','S
 
     if 'interaction' or 'sri' in eval_metrics:
         explainer = MultiModalExplainer(model=model, data=val_dataset, modality_shapes=mod_shape,
-                                        feature_names=['0', '1'], classes=2, concat=concat)
+                                        feature_names=None, classes=2, concat=concat)
         explaination = explainer(test_dataset)
         shaply_values = explaination.values
         interaction_values = explainer.shaply_interaction_values()
