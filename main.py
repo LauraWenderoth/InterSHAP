@@ -12,7 +12,7 @@ from torch.utils.data import  DataLoader
 from utils.dataset import MMDataset
 from utils.models import LateFusionFeedForwardNN,EarlyFusionFeedForwardNN,IntermediateFusionFeedForwardNN
 from utils.unimodal import train_unimodal
-from utils.utils import  eval_model, save_checkpoint, train_epoch
+from utils.utils import  eval_model, save_checkpoint, train_epoch, load_checkpoint
 from synergy_evaluation.evaluation import eval_synergy
 import argparse
 
@@ -21,7 +21,7 @@ def parse_args():
     # TODO boolean flags with action
 
     # Add arguments
-    parser.add_argument('--train_model', default=True, help='Whether to train the model or just eval')
+    parser.add_argument('--train_model', default=False, help='Whether to train the model or just eval') #action='store_false'
     parser.add_argument('--seeds', nargs='+', type=int, default=[1,42], help='List of seed values, 113 ')
     parser.add_argument('--use_wandb', default=True, help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=5000, help='Batch size for training')
@@ -29,7 +29,7 @@ def parse_args():
     parser.add_argument('--epochs', type=int, default=10, help='Number of epochs for training')
     parser.add_argument('--test_inverval', type=int, default=10, help='Eval interval during traing (int = number of epochs)')
     parser.add_argument('--settings', nargs='+', type=str, default=[ 'synergy', 'uniqueness0', 'uniqueness1','redundancy'], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
-                        choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6'], help='List of settings')
+                        choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'uniqueness2','uniqueness3','mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6','syn_mix5-10-0','syn_mix10-5-0'], help='List of settings')
     parser.add_argument('--concat', default = 'early', choices='early, intermediate, late', help='early, intermediate, late')
     parser.add_argument('--label', type=str, default='VEC3_', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
@@ -97,12 +97,9 @@ def train(device,train_dataloader, val_dataloader, save_path, use_wandb, experim
     model = load_model(concat,modality_shape,output_size)
 
 
-    #model = TabularCrossmodalMultiheadAttention( prediction_task='binary', data_dims=[64,64,None], multiclass_dimensions=None)
     model = model.to(device)
 
     print("Model device:", next(model.parameters()).device)
-    best_model = model
-    best_f1_macro = 0
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.2)
     print("\nMulti-modal Training")
@@ -128,15 +125,10 @@ def train(device,train_dataloader, val_dataloader, save_path, use_wandb, experim
 
             if use_wandb:
                 wandb.log(result)
-
-            #if best_f1_macro < result['Val_f1_macro']:
-            #    best_f1_macro = result['Val_f1_macro']
-            best_model = model
-    save_checkpoint(best_model, save_path, filename=f"{experiment_name}.pt")
-    return best_model
+    save_checkpoint(model, save_path, filename=f"{experiment_name}.pt")
+    return model
 
 if __name__ == "__main__":
-    # TODO remove args.n_modality
     args = parse_args()
     root_save_path = Path(args.root_save_path)
     print(f'Start experiments with setting {args.settings} on dataset {args.label}DATA'
@@ -184,6 +176,7 @@ if __name__ == "__main__":
             else:
                 model_weights = save_path / f'{setting}.pt'
                 model = load_model(args.concat,train_data.get_modality_shapes(),train_data.get_number_classes())
+                model = load_checkpoint(model,model_weights)
                 model.to(args.device)
 
 

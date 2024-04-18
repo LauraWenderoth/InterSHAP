@@ -2,6 +2,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+class OrginalFunction(nn.Module):
+    def __init__(self,setting):
+        super(IntermediateFusionFeedForwardNN, self).__init__()
+        self.setting = setting
+
+    def forward(self, features):
+        map
+        return x
 
 class IntermediateFusionFeedForwardNN(nn.Module):
     def __init__(self, input_size, output_size):

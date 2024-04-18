@@ -3,6 +3,12 @@ from sklearn.model_selection import train_test_split
 from pathlib import Path
 import argparse
 import umap
+import sys
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 from utils.utils import save_data
 import matplotlib.pyplot as plt
 import math
@@ -230,6 +236,7 @@ def generate_synthetic_data_XOR(num_samples, dimensions, d, delta, run_name = 'X
         elif "uniqueness" in setting:
             assert setting and setting[-1].isdigit(), 'Last char has to be the number of the modality that should determine the label (starts with 0)'
             unique_modality = int(setting[-1])
+            assert unique_modality <= n_modalities, f'Setting {setting} not defined for, check number of dimensions (not enough dims)'
             vector = []
             for mi in range(2):
                 if data[sample_i][mi] == 0:
@@ -265,9 +272,9 @@ if __name__ == "__main__":
     parser.add_argument("--save_path", type=str,
                         default="/home/lw754/masterproject/PID/synthetic_data/",
                         help="Path to save the file")
-    parser.add_argument("--setting", type=str, default='uniqueness3',
-                        choices=['redundancy', 'uniqueness0', 'uniqueness1', 'synergy'], help="Data generation setting")
-    parser.add_argument('--dim_modalities', nargs='+', type=int, default=[200, 100, 150, 100], help='List of dim for modalities')
+    parser.add_argument("--setting", type=str, default='uniqueness2',
+                        choices=['redundancy', 'uniqueness0', 'uniqueness1','uniqueness2','uniqueness3','uniqueness4', 'synergy'], help="Data generation setting")
+    parser.add_argument('--dim_modalities', nargs='+', type=int, default=[200, 100, 150], help='List of dim for modalities')
 
     parser.add_argument("--label", type=str, default='VEC', help="Number of modalities")
 

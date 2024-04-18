@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from collections import Counter
+from sklearn.metrics import f1_score, confusion_matrix, recall_score, precision_score, accuracy_score,balanced_accuracy_score
 from utils.utils import eval_model
 from utils.dataset import MMDataset
 from torch.utils.data import  DataLoader
@@ -29,8 +30,18 @@ def org_SHAPE(dataset,model,batch_size,device,metric='f1_macro'):
 
     # 1. calulcate base values using dataset:
     counts = Counter(y)
-    majority_number, majority_count = counts.most_common(1)[0]
-    base_value = (majority_count / len(y))
+    majority_class, majority_count = counts.most_common(1)[0]
+    predictions = [majority_class] * len(y)
+    f1 = f1_score(y, predictions, average='weighted')
+    f1_macro = f1_score(y, predictions, average='macro')
+    recall = recall_score(y, predictions, average='weighted')
+    precision = precision_score(y, predictions, average='weighted')
+    accuracy = accuracy_score(y, predictions)
+    balanced_accuracy = balanced_accuracy_score(y, predictions)
+    base_results = {f'f1': f1, f'f1_macro': f1_macro, f'recall': recall,
+               f'precision': precision, f'accuracy': accuracy,
+               f'balanced_accuracy': balanced_accuracy}
+    base_value = base_results[metric]
 
     # 2. calculate F1 for all
     dataloader = DataLoader(dataset, batch_size=batch_size,shuffle=False)

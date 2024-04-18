@@ -22,7 +22,12 @@ def save_checkpoint(model, checkpoint_path, filename="checkpoint.pt"):
 def load_checkpoint(model, path):
     best_checkpoint = torch.load(path)
     model.load_state_dict(best_checkpoint)
-    return best_checkpoint
+    print(f'Model checkpoint loaded from {path}')
+    return model
+
+
+
+
 
 def eval_model(dataloader, model,device,title='Val',use_wandb=False,return_predictions=False):
     model.eval()
