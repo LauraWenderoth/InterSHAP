@@ -10,7 +10,7 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import  DataLoader
 from utils.dataset import MMDataset
-from utils.models import LateFusionFeedForwardNN,EarlyFusionFeedForwardNN,IntermediateFusionFeedForwardNN
+from utils.models import LateFusionFeedForwardNN,EarlyFusionFeedForwardNN,IntermediateFusionFeedForwardNN, OrginalFunctionXOR
 from utils.unimodal import train_unimodal
 from utils.utils import  eval_model, save_checkpoint, train_epoch, load_checkpoint
 from synergy_evaluation.evaluation import eval_synergy
@@ -22,21 +22,21 @@ def parse_args():
 
     # Add arguments
     parser.add_argument('--train_model', default=False, help='Whether to train the model or just eval') #action='store_false'
-    parser.add_argument('--seeds', nargs='+', type=int, default=[1,42], help='List of seed values, 113 ')
-    parser.add_argument('--use_wandb', default=True, help='Whether to use wandb or not')
+    parser.add_argument('--seeds', nargs='+', type=int, default=[1], help='List of seed values, 113 ')
+    parser.add_argument('--use_wandb', default=False, help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=5000, help='Batch size for training')
-    parser.add_argument('--n_samples_for_interaction', type=int, default=10, help='Number of samples for interaction')
-    parser.add_argument('--epochs', type=int, default=10, help='Number of epochs for training')
+    parser.add_argument('--n_samples_for_interaction', type=int, default=100, help='Number of samples for interaction')
+    parser.add_argument('--epochs', type=int, default=0, help='Number of epochs for training')
     parser.add_argument('--test_inverval', type=int, default=10, help='Eval interval during traing (int = number of epochs)')
-    parser.add_argument('--settings', nargs='+', type=str, default=[ 'synergy', 'uniqueness0', 'uniqueness1','redundancy'], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
+    parser.add_argument('--settings', nargs='+', type=str, default=[  'uniqueness0', 'uniqueness1','synergy','redundancy'], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
                         choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'uniqueness2','uniqueness3','mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6','syn_mix5-10-0','syn_mix10-5-0'], help='List of settings')
-    parser.add_argument('--concat', default = 'early', choices='early, intermediate, late', help='early, intermediate, late')
-    parser.add_argument('--label', type=str, default='VEC3_', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
+    parser.add_argument('--concat', default = 'function', choices='early, intermediate, late', help='early, intermediate, late function')
+    parser.add_argument('--label', type=str, default='VEC2_', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
     parser.add_argument('--train_uni_model', default=False, help='Whether to train the model or just eval')
     parser.add_argument('--synergy_eval_epoch', default=False, help='Whether to eval synergy metrics during training')
-    parser.add_argument('--synergy_metrics', nargs='+', type=str, default=['SHAPE','SRI','Interaction'], help="List of seed values ['SHAPE','SRI','Interaction','PID','EMAP'] ")
+    parser.add_argument('--synergy_metrics', nargs='+', type=str, default=['SHAPE','SRI','Interaction','PID','EMAP'], help="List of seed values ['SHAPE','SRI','Interaction','PID','EMAP'] ")
     parser.add_argument('--save_results', default=True, help='Whether to locally save results or not')
 
     args = parser.parse_args()
@@ -71,13 +71,15 @@ def print_latex_results_table(stats_dict):
 
 
 
-def load_model(concat,modality_shape,output_size):
+def load_model(concat,modality_shape=None,output_size=None,setting=None):
     if concat=='early':
         model =EarlyFusionFeedForwardNN(np.sum(modality_shape), output_size)
     elif concat =='intermediate':
         model = IntermediateFusionFeedForwardNN(modality_shape, output_size)
     elif concat == 'late':
         model = LateFusionFeedForwardNN(modality_shape, output_size)
+    elif concat == 'function':
+        model = OrginalFunctionXOR(setting)
     else:
         print('No valid model selected')
         model = None
@@ -142,7 +144,7 @@ if __name__ == "__main__":
         experiment_name_run = f'{args.label}{setting}_epochs_{args.epochs}_concat_{args.concat}'
         save_path_run = root_save_path/experiment_name_run
         if args.use_wandb:
-            wandb.init(project="masterthesis", name=f"{experiment_name_run}", group="shaply_interaction_index")
+            wandb.init(project="masterthesis", name=f"{experiment_name_run}", group="shaply_interaction_index") #Final_MA
             wandb.config.update(
                 {'batch_size': args.batch_size, 'n_samples_for_interaction': args.n_samples_for_interaction, 'epochs': args.epochs,
                  'concat': args.concat, 'setting': setting, 'data_path': data_path, 'save_path': save_path_run})
@@ -175,9 +177,10 @@ if __name__ == "__main__":
                               experiment_name=setting,concat=args.concat,seed=seed, synergy_eval_epoch=args.synergy_eval_epoch,dataset={'valid':val_dataset,'test':test_dataset },args=args)
             else:
                 model_weights = save_path / f'{setting}.pt'
-                model = load_model(args.concat,train_data.get_modality_shapes(),train_data.get_number_classes())
-                model = load_checkpoint(model,model_weights)
-                model.to(args.device)
+                model = load_model(args.concat,train_data.get_modality_shapes(),train_data.get_number_classes(),setting)
+                if args.concat != 'function':
+                    model = load_checkpoint(model,model_weights)
+                    model.to(args.device)
 
 
 

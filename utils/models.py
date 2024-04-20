@@ -2,14 +2,58 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-class OrginalFunction(nn.Module):
+class OrginalFunctionXOR(nn.Module):
     def __init__(self,setting):
-        super(IntermediateFusionFeedForwardNN, self).__init__()
+        super(OrginalFunctionXOR, self).__init__()
         self.setting = setting
 
-    def forward(self, features):
-        map
-        return x
+    def forward(self, X):
+        #org_X = self.map_back_to_label(X)
+        org_X = torch.stack(X)
+        labels = torch.where(torch.sum(org_X, dim=0) == 1, torch.tensor(1), torch.tensor(0))
+        logits_1 = torch.where(labels == 1, torch.tensor(1000.0), torch.tensor(-1000.0))  # Large positive value for class 1
+        logits_0 = torch.where(labels == 0, torch.tensor(1000.0), torch.tensor(-1000.0))  # Large positive value for class 0
+        try:
+            logits = torch.stack((logits_0, logits_1), dim=1)
+        except:
+            logits = torch.stack((logits_0, logits_1), dim=0)
+        return logits
+
+    def map_back_to_label(self,features):
+        org_values = []
+
+        if self.setting == 'synergy':
+            for modality in features:
+                try:
+                    org_value = torch.where(torch.mean(modality, dim=1) > 0.5, torch.tensor(1), torch.tensor(0))
+                except:
+                    org_value = torch.where(torch.mean(modality, dim=0) > 0.5, torch.tensor(1), torch.tensor(0))
+                org_values.append(org_value)
+
+        else:
+            modality = None
+            if 'unique' in self.setting:
+                assert self.setting and self.setting[
+                    -1].isdigit(), 'Last char has to be the number of the modality that should determine the label (starts with 0)'
+                unique_modality = int(self.setting[-1])
+                modality = features[unique_modality]
+            elif self.setting == 'redundancy':
+                modality = features[0]
+
+            try:
+                first_half = modality[:,:len(modality[-1]) // 2]
+                second_half = modality[:,len(modality[-1]) // 2:]
+                label_first_half = torch.where(torch.mean(first_half, dim=1) > 0.5, torch.tensor(1), torch.tensor(0))
+                label_second_half = torch.where(torch.mean(second_half, dim=1) > 0.5, torch.tensor(1), torch.tensor(0))
+                org_values = [label_first_half,label_second_half]
+            except:
+                first_half = modality[ :len(modality) // 2]
+                second_half = modality[ len(modality) // 2:]
+                label_first_half = torch.where(torch.mean(first_half) > 0.5, torch.tensor(1), torch.tensor(0))
+                label_second_half = torch.where(torch.mean(second_half) > 0.5, torch.tensor(1), torch.tensor(0))
+                org_values = [label_first_half, label_second_half]
+
+        return org_values
 
 class IntermediateFusionFeedForwardNN(nn.Module):
     def __init__(self, input_size, output_size):
