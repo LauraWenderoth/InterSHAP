@@ -22,7 +22,7 @@ def visualize_umap(data, n_modality,save_path):
     y_train = data['train']['label']
 
     # Apply UMAP for dimensionality reduction
-    umap_reducer = umap.UMAP(n_neighbors=100, min_dist=0.8)
+    umap_reducer = umap.UMAP(n_neighbors=50, min_dist=0.5)
     umap_result = umap_reducer.fit_transform(X_train_concatenated)
 
     # Plotting
@@ -65,6 +65,7 @@ def generate_synthetic_data(num_samples, dimensions, d, run_name = 'XOR',setting
     M = [np.random.uniform(-0.5, 0.5, size=(dimensions[i], d)) for i in range(n_modalities)]
 
     data = np.random.randint(0, 2, size=(num_samples, 2))
+    clear_data = []
     if setting == "synergy" and n_modalities > 2:
         data = generate_equally_distributed_data(num_samples, n_modalities)
     if run_name == 'AND':
@@ -108,6 +109,10 @@ def generate_synthetic_data(num_samples, dimensions, d, run_name = 'XOR',setting
 
             x_end = [np.random.normal(loc=0.0, scale=1.0, size=(d,)) for i in range(n_modalities)]
             x_end[unique_modality] = np.concatenate(vector)
+
+            x_org = [np.random.randint(0, 2, size=(2)) for i in range(n_modalities)]
+            x_org[unique_modality] = data[sample_i]
+            clear_data.append(x_org)
             
         elif setting == "synergy":
             x_end = []
@@ -119,8 +124,9 @@ def generate_synthetic_data(num_samples, dimensions, d, run_name = 'XOR',setting
                 x_end.append(np.random.normal(loc=loc, scale=2.0, size=(d,)))
         X.append([np.dot(M1, m1) for M1, m1 in zip(M, x_end)])
     print(f'Proportion of the label 1: {np.sum(label) / len(label)}')
-    data = [[np.array([item]) for item in row] for row in data]
-    return X,data, label
+    if setting == "synergy" or setting == "redundancy":
+        clear_data = [[np.array([item]) for item in row] for row in data]
+    return X,clear_data, label
 
 def create_split(X,y,n_modalities):
     data = dict()
@@ -146,9 +152,9 @@ if __name__ == "__main__":
     parser.add_argument("--perturbation", type=bool, default=True, help="Whether to apply perturbation")
     parser.add_argument("--number_samples", type=int, default=20000, help="Number of samples")
     parser.add_argument("--save_path", type=str,
-                        default="/home/lw754/",
+                        default="/home/lw754/masterproject/synthetic_data/",
                         help="Path to save the file")
-    parser.add_argument("--setting", type=str, default='uniqueness0',
+    parser.add_argument("--setting", type=str, default='uniqueness1',
                         choices=['redundancy', 'uniqueness0', 'uniqueness1','uniqueness2','uniqueness3','uniqueness4', 'synergy'], help="Data generation setting")
     parser.add_argument('--dim_modalities', nargs='+', type=int, default=[200, 100], help='List of dim for modalities')
     parser.add_argument("--label", type=str, default='XOR', choices=['XOR', 'OR', 'AND'],  help="Number of modalities")
@@ -161,7 +167,11 @@ if __name__ == "__main__":
     X,org_data, y = generate_synthetic_data(args.number_samples, args.dim_modalities, d,setting=args.setting)
 
     data = create_split(X, y, len(args.dim_modalities))
-    org_data = create_split(org_data, y, len(args.dim_modalities))
+    if args.setting == 'redundancy':
+        org_data = create_split(org_data, y, 2)
+    else:
+        org_data = create_split(org_data, y, len(args.dim_modalities))
+
 
     visualize_umap(data, len(args.dim_modalities),save_path/f"VEC{len(args.dim_modalities)}{args.label}_DATA_{args.setting}")
     # Save the data

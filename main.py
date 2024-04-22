@@ -23,20 +23,25 @@ def parse_args():
     # Add arguments
     parser.add_argument('--train_model', default=False, help='Whether to train the model or just eval') #action='store_false'
     parser.add_argument('--seeds', nargs='+', type=int, default=[1], help='List of seed values, 113 ')
-    parser.add_argument('--use_wandb', default=False, help='Whether to use wandb or not')
+    parser.add_argument('--use_wandb', default=True, help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=5000, help='Batch size for training')
-    parser.add_argument('--n_samples_for_interaction', type=int, default=100, help='Number of samples for interaction')
+    parser.add_argument('--n_samples_for_interaction', type=int, default=3000, help='Number of samples for interaction')
     parser.add_argument('--epochs', type=int, default=0, help='Number of epochs for training')
     parser.add_argument('--test_inverval', type=int, default=10, help='Eval interval during traing (int = number of epochs)')
-    parser.add_argument('--settings', nargs='+', type=str, default=[  'uniqueness0', 'uniqueness1','synergy','redundancy'], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
+    parser.add_argument('--settings', nargs='+', type=str, default=[  'uniqueness0', 'uniqueness1','redundancy', 'synergy',], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
                         choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'uniqueness2','uniqueness3','mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6','syn_mix5-10-0','syn_mix10-5-0'], help='List of settings')
     parser.add_argument('--concat', default = 'function', choices='early, intermediate, late', help='early, intermediate, late function')
-    parser.add_argument('--label', type=str, default='VEC2_', help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
+    parser.add_argument('--label', type=str, default='VEC2XOR_org_', help='Can choose "" as PID synthetic data or VEC2XOR_org_ "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
+    parser.add_argument('--data_path', type=str,
+                        default='/home/lw754/masterproject/synthetic_data/', help='Root save path')
+    parser.add_argument('--wandb_name', type=str, default='MA Final Results',
+                        help='Can choose "" as PID synthetic data or "OR_" "XOR_" "VEC3_" "VEC2_"')
+
     parser.add_argument('--train_uni_model', default=False, help='Whether to train the model or just eval')
     parser.add_argument('--synergy_eval_epoch', default=False, help='Whether to eval synergy metrics during training')
-    parser.add_argument('--synergy_metrics', nargs='+', type=str, default=['SHAPE','SRI','Interaction','PID','EMAP'], help="List of seed values ['SHAPE','SRI','Interaction','PID','EMAP'] ")
+    parser.add_argument('--synergy_metrics', nargs='+', type=str, default=['SHAPE','SRI','Interaction','EMAP'], help="List of seed values ['SHAPE','SRI','Interaction','PID','EMAP'] ")
     parser.add_argument('--save_results', default=True, help='Whether to locally save results or not')
 
     args = parser.parse_args()
@@ -140,11 +145,11 @@ if __name__ == "__main__":
         print('################################################')
         print(f'Start setting {setting}')
         final_results = dict()
-        data_path = f'/home/lw754/masterproject/PID/synthetic_data/{args.label}DATA_{setting}.pickle'
+        data_path = Path(args.data_path) /f'{args.label}DATA_{setting}.pickle'
         experiment_name_run = f'{args.label}{setting}_epochs_{args.epochs}_concat_{args.concat}'
         save_path_run = root_save_path/experiment_name_run
         if args.use_wandb:
-            wandb.init(project="masterthesis", name=f"{experiment_name_run}", group="shaply_interaction_index") #Final_MA
+            wandb.init(project=args.wandb_name, name=f"{experiment_name_run}") #Final_MA
             wandb.config.update(
                 {'batch_size': args.batch_size, 'n_samples_for_interaction': args.n_samples_for_interaction, 'epochs': args.epochs,
                  'concat': args.concat, 'setting': setting, 'data_path': data_path, 'save_path': save_path_run})
@@ -154,7 +159,6 @@ if __name__ == "__main__":
             run_results = {'seed': seed}
             experiment_name = f'{experiment_name_run}/seed_{seed}'
             save_path = root_save_path / experiment_name
-
             with open(data_path, 'rb') as f:
                 data = pickle.load(f)
 
@@ -184,16 +188,12 @@ if __name__ == "__main__":
 
 
 
-            if args.synergy_metrics is None:
-                print(f'\nNormal evaluation seed {seed}')
-                test_results, y_pred_test = eval_model(test_loader, model, args.device, title='Test', use_wandb=False,return_predictions=True)
-                run_results.update(test_results)
-            else:
-                print(f'\nSynergy metric evaluation seed {seed}')
-                synergy_results = eval_synergy(model, val_dataset, test_dataset, device = args.device,
-                             eval_metrics=args.synergy_metrics, batch_size=args.batch_size,
-                             save_path=save_path, use_wandb=args.use_wandb, n_samples_for_interaction=args.n_samples_for_interaction)
-                run_results.update(synergy_results)
+
+            print(f'\nSynergy metric evaluation seed {seed}')
+            synergy_results = eval_synergy(model, val_dataset, test_dataset, device = args.device,
+                         eval_metrics=args.synergy_metrics, batch_size=args.batch_size,
+                         save_path=save_path, use_wandb=args.use_wandb, n_samples_for_interaction=args.n_samples_for_interaction)
+            run_results.update(synergy_results)
 
             for key, score in run_results.items():
                 if key not in final_results:

@@ -135,6 +135,7 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
+.uuid
 # mkdocs documentation
 /site
 

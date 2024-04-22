@@ -9,7 +9,15 @@ class OrginalFunctionXOR(nn.Module):
 
     def forward(self, X):
         #org_X = self.map_back_to_label(X)
-        org_X = torch.stack(X)
+        if 'unique' in self.setting:
+            assert self.setting and self.setting[
+                -1].isdigit(), 'Last char has to be the number of the modality that should determine the label (starts with 0)'
+            unique_modality = int(self.setting[-1])
+            org_X = X[unique_modality]
+            org_X = org_X.t()
+        else:
+            org_X = [x.squeeze(dim=0) if x.dim() > 1 else x for x in X]
+            org_X = torch.stack(org_X)
         labels = torch.where(torch.sum(org_X, dim=0) == 1, torch.tensor(1), torch.tensor(0))
         logits_1 = torch.where(labels == 1, torch.tensor(1000.0), torch.tensor(-1000.0))  # Large positive value for class 1
         logits_0 = torch.where(labels == 0, torch.tensor(1000.0), torch.tensor(-1000.0))  # Large positive value for class 0
@@ -21,7 +29,9 @@ class OrginalFunctionXOR(nn.Module):
 
     def map_back_to_label(self,features):
         org_values = []
-
+        assert self.setting and self.setting[
+            -1].isdigit(), 'Last char has to be the number of the modality that should determine the label (starts with 0)'
+        unique_modality = int(self.setting[-1])
         if self.setting == 'synergy':
             for modality in features:
                 try:

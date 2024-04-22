@@ -39,9 +39,9 @@ def powerset(lst):
     sorted_indices = np.lexsort(np.rot90(powerset_masks))
     return powerset_masks[sorted_indices[::-1]]
 class MultiModalExplainer(Explainer):
-    def __init__(self, model, data, modality_shapes, classes = 2, max_samples = 1500, feature_names=None,concat =False, device='cuda:0' if torch.cuda.is_available() else 'cpu',random_masking=100):
+    def __init__(self, model, data, modality_shapes, classes = 2, max_samples = 3000, feature_names=None,concat =False, device='cuda:0' if torch.cuda.is_available() else 'cpu',random_masking=100,batch_size = 100):
         self.concat = concat
-
+        self. batch_size = batch_size
         self.device = device
         self.model = model
         self.data = data
@@ -258,6 +258,7 @@ class MultiModalExplainer(Explainer):
             shaply_values = np.sum(np.abs(interaction_df.values))
             interaction_values = np.sum(np.abs((1 - identity_mask) * interaction_df.values))
             interaction_score.append(interaction_values/shaply_values)
+            # rel_interaction_values_base_learing =
         self.coalitions[output_class]['cross_modal_interaction'] = interaction_score
         return {'cross_modal_rel':interaction_score}
 
