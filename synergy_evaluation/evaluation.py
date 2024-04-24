@@ -42,6 +42,10 @@ def eval_synergy(model,val_dataset,test_dataset,device, eval_metrics = ['PID','S
             result = interaction_value[:, ~mask]
             df_interaction_values = pd.DataFrame(result).astype(float)
             df_interaction_values.to_csv(save_path / f"interaction_index.csv", index=False,float_format='%.16f')
+            ### all
+            result = np.concatenate((interaction_value[:, mask], interaction_value[:, ~mask]), axis=1)
+            df_interaction_values = pd.DataFrame(result).astype(float)
+            df_interaction_values.to_csv(save_path / f"interaction_index_best_with_ii.csv", index=False, float_format='%.16f')
 
     ##### PID
     if 'pid' in eval_metrics:

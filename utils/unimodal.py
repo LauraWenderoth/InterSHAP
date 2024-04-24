@@ -67,8 +67,10 @@ def train_unimodal(data,root_save_path, experiment_name_run,device,seed,num_epoc
         test_data = data['test'][str(i_modality)][:n_samples_for_eval]
         val_data = data['valid'][str(i_modality)]
         train_data = data['train'][str(i_modality)]
-
-        input_size = train_data.shape[1]
+        try:
+            input_size = train_data.shape[1]
+        except:
+            input_size =len(train_data[0])
 
         train_dataset = UnimodalDataset(train_data, data['train']['label'], device=device)
         val_dataset = UnimodalDataset(val_data, data['valid']['label'],device=device)

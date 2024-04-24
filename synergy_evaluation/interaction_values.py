@@ -39,7 +39,7 @@ def powerset(lst):
     sorted_indices = np.lexsort(np.rot90(powerset_masks))
     return powerset_masks[sorted_indices[::-1]]
 class MultiModalExplainer(Explainer):
-    def __init__(self, model, data, modality_shapes, classes = 2, max_samples = 3000, feature_names=None,concat =False, device='cuda:0' if torch.cuda.is_available() else 'cpu',random_masking=100,batch_size = 100):
+    def __init__(self, model, data, modality_shapes, classes = 2, max_samples = 3000, feature_names=None,concat =False, device='cuda:0' if torch.cuda.is_available() else 'cpu',random_masking=1500,batch_size = 100):
         self.concat = concat
         self. batch_size = batch_size
         self.device = device
@@ -252,15 +252,20 @@ class MultiModalExplainer(Explainer):
         interaction_score = np.abs(interaction).flatten() / (ones_values - zeros_values).flatten()
         self.coalitions['best']['cross_modal_interaction'] = interaction_score
         '''
+        interaction_score_abs = []
         interaction_score = []
         for interaction_df in self.interaction_values[output_class]:
             identity_mask = np.eye(interaction_df.shape[0])
-            shaply_values = np.sum(np.abs(interaction_df.values))
-            interaction_values = np.sum(np.abs((1 - identity_mask) * interaction_df.values))
-            interaction_score.append(interaction_values/shaply_values)
-            # rel_interaction_values_base_learing =
-        self.coalitions[output_class]['cross_modal_interaction'] = interaction_score
-        return {'cross_modal_rel':interaction_score}
+            shaply_values_abs = np.sum(np.abs(interaction_df.values))
+            interaction_values_abs = np.sum(np.abs((1 - identity_mask) * interaction_df.values))
+            interaction_score_abs.append(interaction_values_abs/shaply_values_abs)
+            ##
+            shaply_values = np.sum(interaction_df.values)
+            interaction_values = np.sum((1 - identity_mask) * interaction_df.values)
+            interaction_score.append(interaction_values / shaply_values)
+        self.coalitions[output_class]['cross_modal_interaction_abs_rel'] = interaction_score_abs
+        self.coalitions[output_class]['cross_modal_interaction_rel'] = interaction_score
+        return {'cross_modal_rel_abs':interaction_score_abs,'cross_modal_rel2':interaction_score}
 
     def __call__(self, X):
         start_time = time.time()
