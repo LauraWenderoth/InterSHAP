@@ -53,6 +53,13 @@ def generate_equally_distributed_data(num_samples, n_modalities):
 
     return filtered_data[:num_samples]
 
+def generate_random_data(num_samples, dimensions, d):
+    n_modalities = len(dimensions)
+    data = np.random.normal(loc=0.5, scale=1.0, size=(num_samples, d))
+    label = np.random.randint(0, 2, size=(num_samples, 1))
+    M = [np.random.uniform(-0.5, 0.5, size=(dimensions[i], d)) for i in range(n_modalities)]
+    result = [[np.dot(row, M[i].T)  for i in range(n_modalities)] for row in data]
+    return result,label
 
 def generate_synthetic_data(num_samples, dimensions, d, run_name = 'XOR',setting = 'redundancy'):
     """
@@ -154,8 +161,8 @@ if __name__ == "__main__":
     parser.add_argument("--save_path", type=str,
                         default="/home/lw754/masterproject/synthetic_data/",
                         help="Path to save the file")
-    parser.add_argument("--setting", type=str, default='uniqueness1',
-                        choices=['redundancy', 'uniqueness0', 'uniqueness1','uniqueness2','uniqueness3','uniqueness4', 'synergy'], help="Data generation setting")
+    parser.add_argument("--setting", type=str, default='random',
+                        choices=['redundancy', 'uniqueness0', 'uniqueness1','uniqueness2','uniqueness3','uniqueness4', 'synergy','random'], help="Data generation setting")
     parser.add_argument('--dim_modalities', nargs='+', type=int, default=[200, 100], help='List of dim for modalities')
     parser.add_argument("--label", type=str, default='XOR', choices=['XOR', 'OR', 'AND'],  help="Number of modalities")
     args = parser.parse_args()
@@ -164,18 +171,23 @@ if __name__ == "__main__":
     print(args.setting, args.number_samples)
 
     d = 200
-    X,org_data, y = generate_synthetic_data(args.number_samples, args.dim_modalities, d,setting=args.setting)
+    if args.setting =='random':
+        X, y = generate_random_data(args.number_samples,  args.dim_modalities, d)
+    else:
+        X,org_data, y = generate_synthetic_data(args.number_samples, args.dim_modalities, d,setting=args.setting)
+        if args.setting == 'redundancy':
+            org_data = create_split(org_data, y, 2)
+        else:
+            org_data = create_split(org_data, y, len(args.dim_modalities))
+        filename = save_path / f"VEC{len(args.dim_modalities)}{args.label}_org_DATA_{args.setting}.pickle"  # Using setting variable directly
+        save_data(org_data, filename)
 
     data = create_split(X, y, len(args.dim_modalities))
-    if args.setting == 'redundancy':
-        org_data = create_split(org_data, y, 2)
-    else:
-        org_data = create_split(org_data, y, len(args.dim_modalities))
+
 
 
     visualize_umap(data, len(args.dim_modalities),save_path/f"VEC{len(args.dim_modalities)}{args.label}_DATA_{args.setting}")
     # Save the data
     filename = save_path/f"VEC{len(args.dim_modalities)}{args.label}_DATA_{args.setting}.pickle"  # Using setting variable directly
     save_data(data, filename)
-    filename = save_path / f"VEC{len(args.dim_modalities)}{args.label}_org_DATA_{args.setting}.pickle"  # Using setting variable directly
-    save_data(org_data, filename)
+

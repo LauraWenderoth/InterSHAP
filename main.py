@@ -29,7 +29,7 @@ def parse_args():
     parser.add_argument('--epochs', type=int, default=1, help='Number of epochs for training')
     parser.add_argument('--test_inverval', type=int, default=10, help='Eval interval during traing (int = number of epochs)')
     parser.add_argument('--settings', nargs='+', type=str, default=[  'uniqueness0', 'uniqueness1','redundancy', 'synergy',], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
-                        choices=['redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'uniqueness2','uniqueness3','uniqueness4','mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6','syn_mix5-10-0','syn_mix10-5-0'], help='List of settings')
+                        choices=['random', 'redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'uniqueness2','uniqueness3','uniqueness4','mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6','syn_mix5-10-0','syn_mix10-5-0'], help='List of settings')
     parser.add_argument('--concat', default = 'early', choices='early, intermediate, late', help='early, intermediate, late function')
     parser.add_argument('--label', type=str, default='VEC2XOR_', help='Can choose "" as PID synthetic data or VEC2XOR_org_ "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
