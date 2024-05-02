@@ -2,7 +2,7 @@ import shap
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from shap import TreeExplainer, Explanation
+from shap import  Explanation
 from pathlib import Path
 import math
 
@@ -27,15 +27,22 @@ def sum_pairs(array, n_mod, features):
                     key = "$I_{" + features[i]+ " + " + features[j]+ "}$"
                     if key not in result_dict.keys():
                         result_dict[key] = []
+
                     value = array[n_sample][i][j] + array[n_sample][j][i]
                     result_dict[key].append(value)
+    assert np.round(np.sum(list(result_dict.values())),5) == np.round(np.sum(array),5), 'Miscalulation'
     return result_dict
 
-def explainer_split_interactions(shaply_values, interactions_2D,base_values, n_modalities,modality_names):
+def explainer_split_interactions(shaply_values, interactions_2D,base_values, n_modalities,modality_names,mean=False):
     interaction_split = sum_pairs(interactions_2D, n_modalities, modality_names)
     interaction_split_data = np.array(list(interaction_split.values()))
     interaction_split_data = np.transpose(interaction_split_data)
     shap_data = np.hstack((shaply_values, interaction_split_data))
+    if mean:
+        exp = Explanation(np.array([np.mean(shap_data,axis=0)]),
+                          [np.mean(base_values)],
+                          feature_names=modality_names + list(interaction_split.keys()))
+        return exp
     exp = Explanation(shap_data,
                       base_values,
                       feature_names=modality_names + list(interaction_split.keys()))
@@ -70,6 +77,7 @@ def get_explanations(explaination_path,modality_names,n_classes):
     assert n_modalities % 1 == 0, 'Interactions have wrong format!'
     n_modalities = int(n_modalities)
     assert n_modalities == len(modality_names), 'Not enough or to many names for modalities'
+    assert len(list(set(modality_names))) == len(modality_names), 'A modality name is duplicated. Different names for each mod'
 
     base_values = list(df[str(np.zeros(n_modalities,dtype=int))])
     n_samples = len(base_values)
@@ -80,6 +88,9 @@ def get_explanations(explaination_path,modality_names,n_classes):
     exp = explainer_split_interactions(shaply_values, interactions_2D,base_values,n_modalities,modality_names)
     results_dict['Single Interaction Split'] = exp
 
+    exp = explainer_split_interactions(shaply_values, interactions_2D,base_values,n_modalities,modality_names,mean=True)
+    results_dict['Mean Interaction Split'] = exp
+
     class_dict = load_class_base_value_dic(explaination_path, n_classes,n_modalities)
 
     split_array, unique_base_values = split_acc_class(data,base_values)
@@ -89,9 +100,12 @@ def get_explanations(explaination_path,modality_names,n_classes):
         exp_split = explainer_split_interactions(shaply_values_split, interactions_2D_split, [base_value_split] * n_samples_split, n_modalities, modality_names)
         class_name = class_dict[base_value_split]
         results_dict[f'Single {class_name}'] = exp_split
+        exp_split_mean = explainer_split_interactions(shaply_values_split, interactions_2D_split, [base_value_split] * n_samples_split, n_modalities, modality_names,mean=True)
+        results_dict[f'Mean {class_name}'] = exp_split_mean
+       
 
 
-    shap_data = np.concatenate((np.mean(shaply_values, axis=0), [np.mean(interactions)]))
+    shap_data = np.concatenate((np.mean(shaply_values, axis=0), [np.sum(np.mean(interactions,axis=0))]))
     shap_data = shap_data.reshape(1,shap_data.shape[0])
     exp = Explanation(shap_data,
                       [np.mean(base_values)],
@@ -105,10 +119,12 @@ def get_explanations(explaination_path,modality_names,n_classes):
     results_dict['Single'] = exp
     return results_dict
 
+
+
 if __name__ == "__main__":
-    explaination_path = '/cross-modal-interaction/results/VEC2XOR_redundancy_epochs_1_concat_early/seed_1/'
+    explaination_path = '/home/lw754/masterproject/cross-modal-interaction/results/VEC5XOR_synergy_epochs_250_concat_early/seed_1/'
     split = True
-    modality_names = ['RNA', 'Protein']
+    modality_names = ['Modality 1', 'Modality 2','Modality 3','Modality 4','Modality 5']
     indiviuell_samples = [1,2]
     overall = True
     plot_mode = 'waterfall' # 'force' 'waterfall'

@@ -16,7 +16,7 @@ sys.path.append(parent_dir)
 from utils.utils import save_data
 
 
-def visualize_umap(data, n_modality,save_path):
+def visualize_umap(data, n_modality,save_path,legend_labels = ['0', '1']):
     # Concatenate the modalities for the training dataset
     X_train_concatenated = np.concatenate([data['train'][str(i)] for i in range(n_modality)], axis=1)
     y_train = data['train']['label']
@@ -29,7 +29,7 @@ def visualize_umap(data, n_modality,save_path):
     plt.figure(figsize=(6, 6))
     plt.scatter(umap_result[:, 0], umap_result[:, 1], c=y_train, cmap='coolwarm', s=5)
     unique_labels = np.unique(y_train)
-    legend_labels = ['0', '1']  # Customize as needed
+
     norm = Normalize(vmin=np.min(y_train), vmax=np.max(y_train))
     # Create empty legend handles
     legend_handles = [plt.Line2D([], [], marker='o', markersize=5, linestyle='None', color=plt.cm.coolwarm(norm(label))) for label in unique_labels]
@@ -136,13 +136,19 @@ def generate_synthetic_data(num_samples, dimensions, d, run_name = 'XOR',setting
     return X,clear_data, label
 
 def create_split(X,y,n_modalities):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y)
+    X_valid, X_test, y_valid, y_test = train_test_split(X_test, y_test, test_size=0.5, stratify=y_test)
+
+    data = format_split(X_train,X_valid,X_test,y_train,y_valid,y_test,n_modalities)
+
+    return data
+
+
+def format_split(X_train,X_valid,X_test,y_train,y_valid,y_test,n_modalities):
     data = dict()
     data['train'] = dict()
     data['valid'] = dict()
     data['test'] = dict()
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y)
-    X_valid, X_test, y_valid, y_test = train_test_split(X_test, y_test, test_size=0.5, stratify=y_test)
 
     for i in range(n_modalities):
         data['train'][str(i)] = [sample[i] for sample in X_train]

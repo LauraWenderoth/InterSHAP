@@ -1,20 +1,13 @@
-import os
-import pandas as pd
-from torchvision.io import read_image
 from torch.utils.data import Dataset, DataLoader
 import torch
-import copy
 import numpy as np
-from pathlib import Path
-from torchvision import transforms
-from sklearn.model_selection import train_test_split
-import itertools
 import wandb
 from tqdm import tqdm
 import random
 from .models import EarlyFusionFeedForwardNN
 from .utils import train_epoch, save_checkpoint, eval_model
-from PIL import Image
+
+
 class UnimodalDataset(Dataset):
     def __init__(self, X,y=None, device = 'cuda:0' if torch.cuda.is_available() else 'cpu',length=None):
         assert isinstance(X, list) or isinstance(X, dict) or isinstance(X,np.ndarray), "X must be a list or dict with one modality (+ label)"

@@ -10,7 +10,7 @@ import wandb
 import numpy as np
 from pathlib import Path
 
-def eval_synergy(model,val_dataset,test_dataset,device, eval_metrics = ['PID','SHAPE','EMAP','SRI','Interaction'],batch_size=100,save_path =None,use_wandb=False,n_samples_for_interaction=100 ):
+def eval_synergy(model,val_dataset,test_dataset,device, eval_metrics = ['PID','SHAPE','EMAP','SRI','Interaction'],batch_size=100,save_path =None,use_wandb=False,n_samples_for_interaction=100 ,classes=2):
     eval_metrics = [metric.lower() for metric in eval_metrics]
     run_results = dict()
     mod_shape =  test_dataset.get_modality_shapes()
@@ -23,9 +23,9 @@ def eval_synergy(model,val_dataset,test_dataset,device, eval_metrics = ['PID','S
                                            return_predictions=True)
     run_results.update(test_results)
 
-    if 'interaction' or 'sri' in eval_metrics:
+    if ('interaction' or 'sri') in eval_metrics:
         explainer = MultiModalExplainer(model=model, data=val_dataset, modality_shapes=mod_shape,
-                                        feature_names=None, classes=2, concat=concat)
+                                        feature_names=None, classes=classes, concat=concat)
         explaination = explainer(test_dataset)
         shaply_values = explaination.values
         interaction_values = explainer.shaply_interaction_values()

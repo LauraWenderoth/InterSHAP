@@ -91,23 +91,26 @@ class LateFusionFeedForwardNN(nn.Module):
     def __init__(self, input_size, output_size):
         device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         super(LateFusionFeedForwardNN, self).__init__()
-        hidden_size = [dim // 2 for dim in input_size]
-        self.fc_modality_layers = [nn.Sequential(
+        hidden_size1 = [dim // 2 for dim in input_size]
+        hidden_size2 = [dim // 2 for dim in hidden_size1]
+
+        self.fc_modality_layers1 = [nn.Sequential(
             nn.Linear(input_dim, hid_dim),
-            nn.ReLU(),
-            nn.Linear(hid_dim, hid_dim),
-        ).to(device) for input_dim, hid_dim in zip(input_size, hidden_size)]
-        self.fc_final = nn.Linear(np.sum(hidden_size), output_size)
+        ).to(device) for input_dim, hid_dim in zip(input_size, hidden_size1)]
+        self.fc_modality_layers2 = [nn.Sequential(
+            nn.Linear(input_dim, hid_dim),
+        ).to(device) for input_dim, hid_dim in zip(hidden_size1, hidden_size2)]
+        self.fc_final = nn.Linear(np.sum(hidden_size2), output_size)
         self.float()
+
 
     def forward(self, features):
         # Pass each modality through its respective hidden layers
-        x_hidden = [layer(x_modality) for layer, x_modality in zip(self.fc_modality_layers, features)]
+        x_hidden1 = [torch.relu(layer(x_modality)) for layer, x_modality in zip(self.fc_modality_layers1, features)]
+        x_hidden2 = [torch.relu(layer(x_modality)) for layer, x_modality in zip(self.fc_modality_layers2, x_hidden1)]
         # Concatenate hidden representations
-        x_concatenated = torch.cat(x_hidden, dim=-1)
-        # Pass concatenated hidden representations through the final fully connected layer
+        x_concatenated = torch.cat(x_hidden2, dim=-1)
         x_output = self.fc_final(x_concatenated)
-
         return x_output
 
 

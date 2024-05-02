@@ -103,6 +103,7 @@ class MultiModalExplainer(Explainer):
                 masked_data_point = [mask_random_data_point[i] * random_data_point[i] for i in range(len(sample))]
                 masked_sample = [mask[i] * sample[i] for i in range(len(sample))]
                 masked_sample = [masked_sample[i] + masked_data_point[i] for i in range(len(sample))]
+                masked_sample = [masked_sample[i][np.newaxis, ...] for i in range(len(sample))] # add batchsize
                 masked_sample = [masked_sample[i].to(self.device,dtype=torch.float) for i in range(len(sample))]
             logits = model.forward(masked_sample)
             probabilities = torch.nn.functional.softmax(logits, dim=-1)

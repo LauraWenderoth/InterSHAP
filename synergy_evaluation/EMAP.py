@@ -85,6 +85,7 @@ def calculate_EMAP(model,X,device,concat=False,len_modality=None):
                 X_ij = X_ij.to(device)
             else:
                 X_ij[0] = X_i[0]
+                X_ij = [x[np.newaxis, ...] for x in X_ij]
                 X_ij = [x.to(device) for x in X_ij]
             logits = model.forward(X_ij)
             logits = logits.tolist()
