@@ -91,7 +91,9 @@ class MultiModalExplainer(Explainer):
             random_index = random.randint(0, len(self.data) - 1)
             random_data_point = self.data[random_index] # to masked modalitiy
             random_data_point = reduce_data(random_data_point)
-            if self.concat: # Todo check if it is working with concat true
+            if self.concat:
+                random_data_point = torch.tensor(np.tile(random_data_point, (batch_size, 1))).to(self.device, dtype=torch.float)
+                mask = mask.to(self.device)
                 if not isinstance(mask, torch.Tensor):
                     mask = torch.tensor(mask)
                 mask_random_data_point = mask ^ 1
@@ -133,7 +135,10 @@ class MultiModalExplainer(Explainer):
         for i, sample in enumerate(tqdm(X,desc="Coalition Values",miniters=1)):
             self.explain_data.append(sample) # TODO remove
             data = reduce_data(sample)
-            batch_size = data[0].shape[0]
+            if self.concat == False:
+                batch_size = data[0].shape[0]
+            else:
+                batch_size = data.shape[0]
             best = -1
             for mask,subset in zip(self.masks,self.powerset_masks):
 
@@ -145,11 +150,16 @@ class MultiModalExplainer(Explainer):
                     '''
                 if self.concat == False:
                     mask = [torch.tensor(np.tile(m, (batch_size, 1))).to(self.device) for m in mask]
+                else:
+                    mask = torch.tensor(np.tile(mask, (batch_size, 1)))
 
                 if np.all(subset == 0):
                     self.log_coalition_values(np.tile(self.base_values, (batch_size, 1)), subset,best)
                 elif np.all(subset == 1):
-                    data = [data[i].to(self.device, dtype=torch.float) for i in range(len(data))]
+                    if self.concat == False:
+                        data = [data[i].to(self.device, dtype=torch.float) for i in range(len(data))]
+                    else:
+                        data = data.to(self.device, dtype=torch.float)
                     logits = model.forward(data)
                     probabilities = torch.nn.functional.softmax(logits, dim=-1)
                     probabilities = probabilities.detach().cpu().numpy()
