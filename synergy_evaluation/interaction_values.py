@@ -39,7 +39,7 @@ def powerset(lst):
     sorted_indices = np.lexsort(np.rot90(powerset_masks))
     return powerset_masks[sorted_indices[::-1]]
 class MultiModalExplainer(Explainer):
-    def __init__(self, model, data, modality_shapes, classes = 2, max_samples = 3000, feature_names=None,concat =False, device='cuda:0' if torch.cuda.is_available() else 'cpu',random_masking=1500,batch_size = 100):
+    def __init__(self, model, data, modality_shapes, classes = 2, max_samples = 3000, feature_names=None,concat =False, device='cuda:0' if torch.cuda.is_available() else 'cpu',random_masking=1000,batch_size = 100):
         self.concat = concat
         self. batch_size = batch_size
         self.device = device
@@ -62,11 +62,12 @@ class MultiModalExplainer(Explainer):
                 except:
                     mask = np.array([item for sublist in mask for item in sublist])
             self.masks.append(mask)
-        self.coalitions = {}
+        self.coalitions_dict = {}
+        self.coalitions =  {}
         self.number_output = classes
         for c in range(classes):
-            self.coalitions[f'class_{c}'] = pd.DataFrame(columns=[str(subset) for subset in self.powerset_masks])
-        self.coalitions['best'] = pd.DataFrame(columns=[str(subset) for subset in self.powerset_masks])
+            self.coalitions_dict[f'class_{c}'] = {str(subset):[] for subset in self.powerset_masks}
+        self.coalitions_dict['best'] = {str(subset):[] for subset in self.powerset_masks}
         self.random_masking = random_masking
         self.max_samples = max_samples
         self.explain_data = []
@@ -84,13 +85,13 @@ class MultiModalExplainer(Explainer):
         # for all samples in data: calculate probas
         # calculate mean axis = 1
 
-    def calculate_coalition_value(self,sample,mask,model):
+    def calculate_coalition_value(self,sample,mask,model,batch_size):
         model_predictions = []
         for i in range(self.random_masking):
             random_index = random.randint(0, len(self.data) - 1)
             random_data_point = self.data[random_index] # to masked modalitiy
             random_data_point = reduce_data(random_data_point)
-            if self.concat:
+            if self.concat: # Todo check if it is working with concat true
                 if not isinstance(mask, torch.Tensor):
                     mask = torch.tensor(mask)
                 mask_random_data_point = mask ^ 1
@@ -99,11 +100,12 @@ class MultiModalExplainer(Explainer):
                 masked_sample = masked_sample + masked_data_point
                 masked_sample = masked_sample.to(self.device,dtype=torch.float)
             else:
+                random_data_point = [torch.tensor(np.tile(m, (batch_size, 1))).to(self.device,dtype=torch.float) for m in random_data_point]
                 mask_random_data_point = [mask_ ^ 1 for mask_ in mask]
+
                 masked_data_point = [mask_random_data_point[i] * random_data_point[i] for i in range(len(sample))]
                 masked_sample = [mask[i] * sample[i] for i in range(len(sample))]
                 masked_sample = [masked_sample[i] + masked_data_point[i] for i in range(len(sample))]
-                masked_sample = [masked_sample[i][np.newaxis, ...] for i in range(len(sample))] # add batchsize
                 masked_sample = [masked_sample[i].to(self.device,dtype=torch.float) for i in range(len(sample))]
             logits = model.forward(masked_sample)
             probabilities = torch.nn.functional.softmax(logits, dim=-1)
@@ -113,36 +115,58 @@ class MultiModalExplainer(Explainer):
         #print(masked_sample_tensor)
         return np.mean(model_predictions,axis=0).squeeze()
 
+    def log_coalition_values(self,probabilities,subset,best):
+        for c in range(len(probabilities[0])):
+            self.coalitions_dict[f'class_{c}'][str(subset)].extend(list(probabilities[:, c]))
+        best_probas = [probabilities[ind,best_proba] for ind, best_proba in enumerate(best)]
+        self.coalitions_dict['best'][str(subset)].extend(best_probas)
+
     def calculate_coaliton_values(self,X,model):
+        X = DataLoader(X,
+                       batch_size=self.batch_size,
+                       shuffle=False,
+                       num_workers=1,
+                       pin_memory=True,
+                       multiprocessing_context="fork",
+                       persistent_workers=True,
+                       prefetch_factor=2)
         for i, sample in enumerate(tqdm(X,desc="Coalition Values",miniters=1)):
-            self.explain_data.append(sample)
+            self.explain_data.append(sample) # TODO remove
             data = reduce_data(sample)
+            batch_size = data[0].shape[0]
             best = -1
             for mask,subset in zip(self.masks,self.powerset_masks):
 
-
+                ''' 
                 if self.concat == False: #prepare mask
                     mask = list(itertools.chain.from_iterable(mask))
                     mask = np.squeeze(mask)
                     mask = reverse_reduce_data(mask, data)
+                    '''
+                if self.concat == False:
+                    mask = [torch.tensor(np.tile(m, (batch_size, 1))).to(self.device) for m in mask]
+
                 if np.all(subset == 0):
-                    for c in range(self.number_output):
-                        self.coalitions[f'class_{c}'].loc[i, str(subset)] = self.base_values[c]
-                    self.coalitions['best'].loc[i, str(subset)] = self.base_values[best]
+                    self.log_coalition_values(np.tile(self.base_values, (batch_size, 1)), subset,best)
+                elif np.all(subset == 1):
+                    data = [data[i].to(self.device, dtype=torch.float) for i in range(len(data))]
+                    logits = model.forward(data)
+                    probabilities = torch.nn.functional.softmax(logits, dim=-1)
+                    probabilities = probabilities.detach().cpu().numpy()
+                    best = np.argmax(probabilities,axis=1)
+                    self.log_coalition_values(probabilities, subset,best)
                 else:
-                    predictions = self.calculate_coalition_value(data, mask, model)
-                    if np.all(subset == 1):
-                        best = np.argmax(predictions)
-                    #print(f'coaltion values{data}')
-                    for c in range(len(predictions)):
-                        self.coalitions[f'class_{c}'].loc[i,  str(subset)] = predictions[c]
-                    self.coalitions['best'].loc[i, str(subset)] = predictions[best]
+                    predictions = self.calculate_coalition_value(data, mask, model,batch_size=batch_size)
+                    self.log_coalition_values(predictions, subset,best)
+            # make dict to df
+            for key in self.coalitions_dict.keys():
+                self.coalitions[key] = pd.DataFrame.from_dict(self.coalitions_dict[key])
 
     def calc_base_values(self,X, model):
         X.set_length(self.max_samples)
         model_predictions = []
         X = DataLoader(X,
-                              batch_size=1,
+                              batch_size=self.batch_size,
                               shuffle=False,
                               num_workers=1,
                               pin_memory=True,
@@ -160,7 +184,7 @@ class MultiModalExplainer(Explainer):
             probabilities = torch.nn.functional.softmax(logits, dim=1)
             logits = logits.detach().cpu().numpy()
             probabilities = probabilities.detach().cpu().numpy()
-            model_predictions.append(probabilities)
+            model_predictions.extend(probabilities)
         return np.mean(model_predictions,axis=0).squeeze()
 
     def shaply_values(self):
@@ -189,7 +213,7 @@ class MultiModalExplainer(Explainer):
                     self.coalitions[output_class].loc[sample_row, shaply_value_column] = shaply_value
 
     def get_output_classes(self):
-        output_classes = list(self.coalitions.keys())
+        output_classes = list(self.coalitions_dict.keys())
         return [s for s in output_classes if s != 'best']
 
     def shaply_interaction_values(self):
