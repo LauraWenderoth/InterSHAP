@@ -1,3 +1,30 @@
+#
+
+## Cross modal interaction metrics
+
+##  Application to one's own models. 
+
+```
+import torch
+from synergy_evaluation.evaluation import eval_synergy
+from utils.dataset import MMDataset
+
+synergy_eval_metrics = ['SHAPE','SRI','Interaction','PID','EMAP'] #choose the one you want
+save_path = $PATH
+number_of_classes = $INT
+
+val_dataset, test_dataset = $ LOAD DATA in MMDataset
+
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+model = torch.load(PATH)
+model.to(device)
+
+synergy_results = eval_synergy(model, val_dataset, test_dataset, device = device, eval_metrics=synergy_eval_metrics, batch_size=100, save_path=save_path, use_wandb=False, n_samples_for_interaction=10, classes = number_of_classes)
+print(synergy_results)
+```
+
+# Notes
+```
  bash generate_VEC4.sh
  
 bash generate_data/generate_VEC2.sh /home/lw754/masterproject/synthetic_data
@@ -47,7 +74,7 @@ python interaction_index_dataset.py --results_path '/home/lw754/masterproject/cr
     --seeds 1 \
     --concat 'function' \
     --epochs 0
-
+```
 /home/lw754/masterproject/cross-modal-interaction/results/VEC2XOR_uniqueness0_epochs_200_concat_early
 /home/lw754/masterproject/cross-modal-interaction/results/VEC2XOR_uniqueness0_epochs_200_concat_early/seed_1/interaction_index_best_with_ii.csv'
 
