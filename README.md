@@ -1,4 +1,9 @@
-#
+# InterSHAP
+
+<p align="center">
+  <img src="visualization/Overview InterSHAP" alt="Image 1" width="800"/>
+</p>
+
 
 ## Cross modal interaction metrics
 
