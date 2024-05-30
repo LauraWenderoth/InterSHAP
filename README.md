@@ -39,8 +39,25 @@ InterSHAP values are presented in percentages for both the baseline model (XOR) 
 
 
 # Visualisation
+We designed InterSHAP to be compatible with the visualisation modules of the [SHAP](https://shap.readthedocs.io/en/latest/) implementation. The code for creating the plots can be found in `visualisation/plot.ipynb`.  The following figures illustrate the breakdown of the model behaviour on the HD-XOR data sets into its components. This representation uniquely shows the relevance of modalities in absolute numbers in addition to cross-modal interactions. 
 
-# Replicate Results
+1. These are examples shown in the form of a waterfall plot:
+
+<p align="center">
+  <img src="visualization/u1_mean_waterfall.png" alt="Image 1" width="400"/>
+  <img src="visualization/u2_mean_waterfall.png" alt="Image 1" width="400"/>
+  <img src="visualization/synergy_mean_waterfall.png" alt="Image 1" width="400"/>
+</p>
+
+2. These are examples shown in the form of a force plot:
+<p align="center">
+  <img src="visualization/redundancy_mean_force.png" alt="Image 1" width="600"/>
+  <img src="visualization/random_mean_force.png" alt="Image 1" width="600"/>
+</p>
+
+Our visualisation also has several other features: it can distinguish between predicted classes and be created for each individual data point. If there are more than two modalities, the user can choose whether to display interactions together or split them up per pair of modalities.
+
+# Replicate Results 
 To reproduce the results, you first create the synthetic datasets, then train the models, and finally evaluate the trained models on the test dataset.
 
  ## 1. Setup
@@ -54,9 +71,9 @@ To reproduce the results, you first create the synthetic datasets, then train th
  ## 2. Generate Synthetic Data (HD-XOR)
 To generate the synthetic datasets (settings: uniqueness 1, uniqueness 2, synergy, random and redundancy) with the HD-XOR method for the following scripts:
 ```bash
-bash generate_data/generate_VEC2.sh $PATH/TO/SAVE/$
-bash generate_data/generate_VEC3.sh $PATH/TO/SAVE/$
-bash generate_data/generate_VEC5.sh $PATH/TO/SAVE/$
+bash generate_data/generate_VEC2.sh PATH/TO/SAVE/
+bash generate_data/generate_VEC3.sh PATH/TO/SAVE/
+bash generate_data/generate_VEC5.sh PATH/TO/SAVE/
 ```
 
  ## 3. Train model
@@ -64,17 +81,66 @@ You can choose which  `--settings`  to consider and which concatenation method `
 The `--unimodal` flag additionally trains an FCNN on each modality individually. Change `--label` to <kbd style="background-color: lightgray;">VEC3XOR_</kbd>, <kbd style="background-color: lightgray;">VEC4XOR_</kbd> for three or four modalities, respectivly.
 
 ```bash
-python main.py --seeds 1 42 113 --epochs 200 --label VEC2XOR_ --settings  uniqueness0 uniqueness1 synergy redundancy  --concat early --train_uni_model --train
+python main.py 
+    --seeds 1 42 113 \
+    --epochs 200 \ 
+    --label VEC2XOR_ \ 
+    --settings  uniqueness0 uniqueness1 synergy redundancy  \ 
+    --concat early --train_uni_model --train
 ```
  ## 4. Eval model on cross-modal interactions
 Specify the interaction scores you want to use with the `--synergy_metrics` flag. You can choose from  <kbd style="background-color: lightgray;">SHAPE</kbd>,  <kbd style="background-color: lightgray;">InterSHAP</kbd>, <kbd style="background-color: lightgray;">PID</kbd>, and  <kbd style="background-color: lightgray;">EMAP</kbd>. Additionally, indicate how many samples you want to evaluate with the `--n_samples_for_interaction` flag. 
 Note that EMAP may take a considerable amount of time, whereas InterSHAP can comfortably evaluate several thousand data points.
 
 ```bash
-python main.py --seeds 1 42 113 --n_samples_for_interaction 2000 --epochs 200 --label VEC2XOR_ --synergy_metrics SHAPE InterSHAP EMAP PID --settings synergy uniqueness0 redundancy uniqueness1 --concat early 
+python main.py 
+    --seeds 1 42 113  \
+    --n_samples_for_interaction 2000  \
+    --epochs 200 --label VEC2XOR_  \
+    --synergy_metrics SHAPE InterSHAP EMAP PID  \
+    --settings synergy uniqueness0 redundancy uniqueness1  \
+    --concat early 
 ```
 
-#  Application to one's own models. 
+## Mulitmodal Single Cell Datasets
+```bash
+python main.py 
+    --seeds 1 42 113 \
+    --n_samples_for_interaction 500 \
+    --epochs 200 --label single-cell_ \
+    --synergy_metrics SHAPE  InterSHAP EMAP PID \
+    --settings all \
+    --concat late \
+    --train --train_uni_model  \
+    --number_of_classes 4 \
+    --data_path PATH/TO/DATA$
+```
+## MIMIC III
+The MIMIC dataset has restricted access. To gain access to the preprocessed version of this dataset, please follow instructions [here](https://mimic.mit.edu/) to gain the necessary credentials. We used the prepocessed data from [MultiBench](https://github.com/pliang279/MultiBench?tab=readme-ov-file). Once you have the credentials, email yiweilyu@umich.edu with proof of your credentials and ask for the preprocessed 'im.pk' file. 
+
+To create the correct format, execute: 
+```bash
+python generate_data/mimic.py 
+    --save_path PATH/real_world_data \ 
+    --imputed_path PATH/TO/im.pk \
+    --task -1
+```
+You should have trained models on the MIMIC III dataset. Than you can evaluate the model for cross-modal interaction by running:
+
+```bash
+python main_mimic.py   \
+    --n_samples_for_interaction 2000   \
+    --label mimic_  \
+    --synergy_metrics   InterSHAP  PID EMAP  \
+    --settings taskmortality_2D  \
+    --concat baseline   \
+    --data_path PATH/real_world_data$  \
+    --number_of_classes 6  \
+    --pretrained_paths '/PATH/baseline_task1_seed1.pt' '/PATH/baseline_task1_seed2.pt' '/PATH/baseline_task1_seed3.pt'
+
+```
+
+# Apply InterSHAP to your own model
 
 ```
 import torch
@@ -95,194 +161,3 @@ synergy_results = eval_synergy(model, val_dataset, test_dataset, device = device
 print(synergy_results)
 ```
 
-# Notes
-```
- bash generate_VEC4.sh
- 
-bash generate_data/generate_VEC2.sh /home/lw754/masterproject/synthetic_data
-python main.py --seeds 1 42 113 --n_samples_for_interaction 1000 --epochs 300 --label VEC4_ --synergy_metrics SHAPE SRI Interaction  --settings synergy uniqueness0 redundancy uniqueness1 uniqueness2 uniqueness3
-python main.py --seeds 1 42 113 --n_samples_for_interaction 2000 --epochs 200 --label VEC2XOR_ --synergy_metrics SHAPE SRI Interaction EMAP PID --settings synergy uniqueness0 redundancy uniqueness1 --concat early --train_uni_model
-python main.py --seeds 1 42 113 --n_samples_for_interaction 2000 --epochs 200 --label VEC3XOR_ --synergy_metrics SHAPE SRI Interaction --settings synergy uniqueness0 redundancy uniqueness1 uniqueness2 --concat early --train_uni_model
-python main.py --seeds 1 42 113 --n_samples_for_interaction 2000 --epochs 250 --label VEC4XOR_ --synergy_metrics SHAPE SRI Interaction --settings synergy uniqueness0 redundancy uniqueness1 uniqueness2 uniqueness3 --concat early --train_uni_model
-python main.py --seeds 1 42 113 --n_samples_for_interaction 2000 --epochs 250 --label VEC5XOR_ --synergy_metrics SHAPE SRI Interaction --settings synergy uniqueness0 redundancy uniqueness1 uniqueness2 uniqueness3 uniqueness4 --concat early --train_uni_model
-
-% eval with XOR funktion:
-python main.py --seeds 1  --n_samples_for_interaction 500 --epochs 200 --label VEC2XOR_org_ --synergy_metrics SHAPE SRI Interaction EMAP  --settings synergy uniqueness0 redundancy uniqueness1 --concat function 
-
-conda list -e > requirements.txt
-
-% real world
-python main.py --seeds 1 42 113 --n_samples_for_interaction 2000 --epochs 200 --label brca2_ --synergy_metrics SHAPE SRI Interaction EMAP PID --settings 2_mc 2_rc 2_rm --concat early --train_uni_model
-python main.py --seeds 1 42 113 --n_samples_for_interaction 200 --epochs 200 --label single-cell_ --synergy_metrics SHAPE SRI Interaction EMAP PID --settings all --concat late --train_uni_model --data_path /home/lw754/masterproject/real_world_data --number_of_classes 4
-
- 
-
-
-% with mimic
-mfm
-python main_mimic.py   \
-    --n_samples_for_interaction 2000   \
-    --label mimic_  \
-    --synergy_metrics SHAPE SRI Interaction EMAP PID  \
-    --settings task7_2D  \
-    --concat mvae   \
-    --data_path /home/lw754/masterproject/real_world_data  \
-    --number_of_classes 2  \
-    --pretrained_paths '/home/lw754/masterproject/results_real_world/MFM_task7_seed1.pt' '/home/lw754/masterproject/results_real_world/MFM_task7_seed42.pt' '/home/lw754/masterproject/results_real_world/MFM_task7_seed113.pt'
-
-python main_mimic.py   \
-    --n_samples_for_interaction 2000   \
-    --label mimic_  \
-    --synergy_metrics SHAPE SRI Interaction EMAP PID  \
-    --settings taskmortality_2D  \
-    --concat mvae   \
-    --data_path /home/lw754/masterproject/real_world_data  \
-    --number_of_classes 2  \
-    --pretrained_paths '/home/lw754/masterproject/results_real_world/MFM_taskmortality_seed1.pt' '/home/lw754/masterproject/results_real_world/MFM_taskmortality_seed42.pt' '/home/lw754/masterproject/results_real_world/MFM_taskmortality_seed113.pt'
-
-python main_mimic.py   \
-    --n_samples_for_interaction 2000   \
-    --label mimic_  \
-    --synergy_metrics SHAPE SRI Interaction EMAP PID  \
-    --settings task1_2D  \
-    --concat mvae   \
-    --data_path /home/lw754/masterproject/real_world_data  \
-    --number_of_classes 2  \
-     --pretrained_paths '/home/lw754/masterproject/results_real_world/MFM_task1_seed1.pt' '/home/lw754/masterproject/results_real_world/MFM_task1_seed42.pt' '/home/lw754/masterproject/results_real_world/MFM_task1_seed113.pt'
- 
-
-baseline
-python main_mimic.py   \
-    --n_samples_for_interaction 2000   \
-    --label mimic_  \
-    --synergy_metrics  Interaction PID  \
-    --settings task7_2D  \
-    --concat mvae   \
-    --data_path /home/lw754/masterproject/real_world_data  \
-    --number_of_classes 2  \
-    --pretrained_paths '/home/lw754/masterproject/results_real_world/baseline_task7_seed1.pt' '/home/lw754/masterproject/results_real_world/baseline_task7_seed42.pt' '/home/lw754/masterproject/results_real_world/baseline_task7_seed113.pt'
-
-python main_mimic.py   \
-    --n_samples_for_interaction 2000   \
-    --label mimic_  \
-    --synergy_metrics   Interaction  PID  \
-    --settings taskmortality_2D  \
-    --concat mvae   \
-    --data_path /home/lw754/masterproject/real_world_data  \
-    --number_of_classes 6  \
-    --pretrained_paths '/home/lw754/masterproject/results_real_world/baseline_taskmortality_seed1.pt' '/home/lw754/masterproject/results_real_world/baseline_taskmortality_seed42.pt' '/home/lw754/masterproject/results_real_world/baseline_taskmortality_seed113.pt'
-
-python main_mimic.py   \
-    --n_samples_for_interaction 2000   \
-    --label mimic_  \
-    --synergy_metrics   Interaction  PID  \
-    --settings task1_2D  \
-    --concat mvae   \
-    --data_path /home/lw754/masterproject/real_world_data  \
-    --number_of_classes 2  \
-     --pretrained_paths '/home/lw754/masterproject/results_real_world/baseline_task1_seed1.pt' '/home/lw754/masterproject/results_real_world/baseline_task1_seed42.pt' '/home/lw754/masterproject/results_real_world/baseline_task1_seed113.pt'
-    
-  
-MVAE
-python main_mimic.py   \
-    --n_samples_for_interaction 2000   \
-    --label mimic_  \
-    --synergy_metrics  Interaction  PID  \
-    --settings task7  \
-    --concat mvae   \
-    --data_path /home/lw754/masterproject/real_world_data  \
-    --number_of_classes 2  \
-    --pretrained_paths '/home/lw754/masterproject/results_real_world/MVAE_task7_seed1.pt' '/home/lw754/masterproject/results_real_world/MVAE_task7_seed42.pt' '/home/lw754/masterproject/results_real_world/MVAE_task7_seed113.pt'
-  
-      
-python main_mimic.py   \
-    --n_samples_for_interaction 2000   \
-    --label mimic_  \
-    --synergy_metrics Interaction PID \
-    --settings taskmortality  \
-    --concat mvae   \
-    --data_path /home/lw754/masterproject/real_world_data  \
-    --number_of_classes 6  \
-    --pretrained_paths '/home/lw754/masterproject/results_real_world/MVAE_taskmortality_seed1.pt' '/home/lw754/masterproject/results_real_world/MVAE_taskmortality_seed42.pt' '/home/lw754/masterproject/results_real_world/MVAE_taskmortality_seed113.pt'
-
-    
-
-python main_mimic.py   \
-    --n_samples_for_interaction 2000   \
-    --label mimic_  \
-    --synergy_metrics Interaction  PID  \
-    --settings task1  \
-    --concat mvae   \
-    --data_path /home/lw754/masterproject/real_world_data  \
-    --number_of_classes 2  \
-    --pretrained_paths '/home/lw754/masterproject/results_real_world/MVAE_task1_seed1.pt' '/home/lw754/masterproject/results_real_world/MVAE_task1_seed42.pt' '/home/lw754/masterproject/results_real_world/MVAE_task1_seed113.pt'
-     
-   
-
-
-%%%%
-cd cross-modal-interaction/synergy_evaluation
-python interaction_index_dataset.py --results_path '/home/lw754/masterproject/cross-modal-interaction/results/' \
-    --dataset_label 'VEC2XOR_' 'VEC2XOR_' 'VEC2XOR_' \
-    --settings 'uniqueness0' 'synergy' 'uniqueness1' 'redundancy' \
-    --seeds 1 42 113 \
-    --concat 'early' 'intermediate' 'late' \
-    --epochs 200 200 200
-
-python interaction_index_dataset.py --results_path '/home/lw754/masterproject/cross-modal-interaction/results/' \
-    --dataset_label 'VEC2XOR_org_' \
-    --settings 'uniqueness0' 'synergy' 'uniqueness1' 'redundancy' \
-    --seeds 1 \
-    --concat 'function' \
-    --epochs 200
- 
- python interaction_index_dataset.py --results_path '/home/lw754/masterproject/cross-modal-interaction/results/' \
-    --dataset_label ''  \
-    --settings 'uniqueness0' 'synergy' 'uniqueness1' 'redundancy' 'syn_mix5-10-0' 'syn_mix10-5-0' \
-    --seeds 1 42 113 \
-    --concat 'early'  \
-    --epochs 200 
-
-
-cd cross-modal-interaction/synergy_evaluation
-python interaction_index_dataset.py --results_path '/home/lw754/masterproject/cross-modal-interaction/results/' \
-    --dataset_label 'VEC3XOR_' 'VEC4XOR_' 'VEC5XOR_' \
-    --settings 'uniqueness0' 'synergy' 'uniqueness1' 'redundancy' \
-    --seeds 1 42 113 \
-    --concat 'early' 'early' 'early'  \
-    --epochs 200 250 250
-
-%% create SUM dataset
-python synthetic/generate_data.py --num-data 20000 --setting synergy --out-path synthetic/experiments --num-classes 2 --transform-dim 50
-
-
-%%SUM
-cd cross-modal-interaction/synergy_evaluation
-python interaction_index_dataset.py --results_path '/home/lw754/masterproject/cross-modal-interaction/results/' \
-    --dataset_label ''  \
-    --settings 'uniqueness0' 'uniqueness1' 'syn_mix5-10-0' 'syn_mix10-5-0' 'synergy'   'redundancy'   \
-    --seeds 1 42 113 \
-    --concat 'early'  \
-    --epochs 200 
-    
-%% VEC3
-
-python interaction_index_dataset.py --results_path '/home/lw754/masterproject/cross-modal-interaction/results/' \
-    --dataset_label 'VEC3XOR_org' \
-    --settings 'uniqueness0' 'synergy' 'uniqueness1' 'redundancy' \
-    --seeds 1 \
-    --concat 'function' \
-    --epochs 0
-    
-python interaction_index_dataset.py --results_path '/home/lw754/masterproject/cross-modal-interaction/results/' \
-    --dataset_label 'single-cell_' 'single-cell_' 'single-cell_' \
-    --settings 'all' \
-    --seeds 1 42 113 \
-    --concat 'early' 'intermediate' 'late' \
-    --epochs 200 200 200
-```
-/home/lw754/masterproject/cross-modal-interaction/results/VEC2XOR_uniqueness0_epochs_200_concat_early
-/home/lw754/masterproject/cross-modal-interaction/results/VEC2XOR_uniqueness0_epochs_200_concat_early/seed_1/interaction_index_best_with_ii.csv'
-
-/auto/archive/tcga/other_data/MIMIC-IV
-/auto/archive/tcga/other_data/MIMIC-III/MultiBench_preprocessed
