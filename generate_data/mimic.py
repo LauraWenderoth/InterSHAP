@@ -148,10 +148,12 @@ if __name__ == "__main__":
                         default="/home/lw754/masterproject/real_world_data/",
                         help="Path to save the file")
     parser.add_argument("--imputed_path", type=str,
-                        default='/home/lw754/masterproject/MultiBench/datasets/mimic/im.pk',
+                        default='/auto/archive/tcga/other_data/MIMIC-III/MultiBench_preprocessed/im.pk',
                         help="Path where data is stored")
-    parser.add_argument("--task", type=int, default=7, help="-1 means mortality task, 1 means icd9 10-19 task, 7 means ic9 70-79 task")
+    parser.add_argument("--task", type=int, default=-1, help="-1 means mortality task, 1 means icd9 10-19 task, 7 means ic9 70-79 task")
     parser.add_argument("--noise",action='store_true',
+                        help="If add noise to test set")
+    parser.add_argument("--not_flatten", action='store_true', default=False,
                         help="If add noise to test set")
 
     args = parser.parse_args()
@@ -161,10 +163,14 @@ if __name__ == "__main__":
 
 
     print('create mimic')
-    X_train,X_valid,X_test,y_train,y_valid,y_test = get_dataset(task=args.task, imputed_path=args.imputed_path, flatten_time_series=True, tabular_robust=args.noise, timeseries_robust=args.noise)
+    X_train,X_valid,X_test,y_train,y_valid,y_test = get_dataset(task=args.task, imputed_path=args.imputed_path, flatten_time_series=args.not_flatten, tabular_robust=args.noise, timeseries_robust=args.noise)
     mods = 2
     labels = ['Class 1', 'Class 2' ]
+    if args.task == -1:
+        args.task = 'mortality'
     save_name = f"mimic_DATA_task{args.task}"
+    if not args.not_flatten:
+        save_name = f"mimic_DATA_task{args.task}_2D"
     if args.noise:
         save_name = f"mimic_DATA_task{args.task}_noise"
 

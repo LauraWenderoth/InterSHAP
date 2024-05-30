@@ -5,12 +5,13 @@ from .SRI import SRI_normalise
 from .SHAPE import cross_modal_SHAPE, org_SHAPE
 from .interaction_values import MultiModalExplainer
 from utils.utils import eval_model
+from .interaction_index_dataset import split_values, calc_interaction_metric_over_dataset
 from torch.utils.data import  DataLoader
 import wandb
 import numpy as np
 from pathlib import Path
 
-def eval_synergy(model,val_dataset,test_dataset,device, eval_metrics = ['PID','SHAPE','EMAP','SRI','Interaction'],batch_size=100,save_path =None,use_wandb=False,n_samples_for_interaction=100 ,classes=2):
+def eval_synergy(model,val_dataset,test_dataset,device, eval_metrics = ['PID','SHAPE','EMAP','SRI','Interaction'],batch_size=100,save_path =None,use_wandb=False,n_samples_for_interaction=3000 ,classes=2):
     eval_metrics = [metric.lower() for metric in eval_metrics]
     run_results = dict()
     mod_shape =  test_dataset.get_modality_shapes()
@@ -60,12 +61,13 @@ def eval_synergy(model,val_dataset,test_dataset,device, eval_metrics = ['PID','S
         kmeans_1, _ = clustering(X_test[1][:n_samples_for_interaction], pca=True, n_components=n_components,
                                  n_clusters=n_clusters)
         kmeans_1 = kmeans_1.reshape(-1, 1)
-        PID_label = y_test.reshape(-1, 1)
-        PID_data = (kmeans_0, kmeans_1, PID_label)
+        for label, name in zip([y_test,y_pred_test],['PID_data','PID_model']):
+            PID_label = label.reshape(-1, 1)
+            PID_data = (kmeans_0, kmeans_1, PID_label)
 
-        P, _ = convert_data_to_distribution(*PID_data)
-        PID_result = get_measure(P)
-        run_results.update(PID_result)
+            P, _ = convert_data_to_distribution(*PID_data)
+            PID_result = get_measure(P,metric=name)
+            run_results.update(PID_result)
 
     #### cross modal
     if 'interaction' in eval_metrics:
@@ -74,6 +76,9 @@ def eval_synergy(model,val_dataset,test_dataset,device, eval_metrics = ['PID','S
             cm_result = explainer.interaction_metric(output_class=output_class)
             for key in cm_result.keys():
                 cross_modal_results[f'{output_class}_{key}'] = np.mean(cm_result[key], axis=0)
+        shaply_values, interactions = split_values(df_interaction_values,explainer.coalitions['best'])
+        interactions_rel_abs = calc_interaction_metric_over_dataset(shaply_values, interactions, local_return=False)
+        cross_modal_results['InterSHAP'] = interactions_rel_abs
         run_results.update(cross_modal_results)
 
 

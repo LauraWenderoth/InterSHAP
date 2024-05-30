@@ -5,7 +5,7 @@ import cvxpy as cp
 from cvxpy import *
 import numpy as np
 from scipy.special import rel_entr
-
+import pickle
 def solve_Q_new(P: np.ndarray):
     '''
     Compute optimal Q given 3d array P
@@ -167,4 +167,8 @@ def clustering(X, pca=False, n_clusters=20, n_components=5):
     kmeans = KMeans(n_clusters=n_clusters,n_init=10).fit(X)
     return kmeans.labels_, X
 
+if __name__ == "__main__":
+    data_path = ''
+    with open(data_path, 'rb') as f:
+        data = pickle.load(f)
 

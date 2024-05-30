@@ -18,28 +18,33 @@ from utils.utils import save_data
 
 def visualize_umap(data, n_modality,save_path,legend_labels = ['0', '1']):
     # Concatenate the modalities for the training dataset
-    X_train_concatenated = np.concatenate([data['train'][str(i)] for i in range(n_modality)], axis=1)
-    y_train = data['train']['label']
+    try:
+        X_train_concatenated = np.concatenate([data['train'][str(i)] for i in range(n_modality)], axis=1)
 
-    # Apply UMAP for dimensionality reduction
-    umap_reducer = umap.UMAP(n_neighbors=50, min_dist=0.5)
-    umap_result = umap_reducer.fit_transform(X_train_concatenated)
 
-    # Plotting
-    plt.figure(figsize=(6, 6))
-    plt.scatter(umap_result[:, 0], umap_result[:, 1], c=y_train, cmap='coolwarm', s=5)
-    unique_labels = np.unique(y_train)
+        y_train = data['train']['label']
 
-    norm = Normalize(vmin=np.min(y_train), vmax=np.max(y_train))
-    # Create empty legend handles
-    legend_handles = [plt.Line2D([], [], marker='o', markersize=5, linestyle='None', color=plt.cm.coolwarm(norm(label))) for label in unique_labels]
+        # Apply UMAP for dimensionality reduction
+        umap_reducer = umap.UMAP(n_neighbors=50, min_dist=0.5)
+        umap_result = umap_reducer.fit_transform(X_train_concatenated)
 
-    # Plot the legend
-    plt.legend(legend_handles, legend_labels, loc='upper right')
-    plt.axis('off')
-    plt.tight_layout(pad=0)
-    plt.savefig(str(save_path) + '_scatter_plot_with_legend.pdf')
-    plt.show()
+        # Plotting
+        plt.figure(figsize=(6, 6))
+        plt.scatter(umap_result[:, 0], umap_result[:, 1], c=y_train, cmap='coolwarm', s=5)
+        unique_labels = np.unique(y_train)
+
+        norm = Normalize(vmin=np.min(y_train), vmax=np.max(y_train))
+        # Create empty legend handles
+        legend_handles = [plt.Line2D([], [], marker='o', markersize=5, linestyle='None', color=plt.cm.coolwarm(norm(label))) for label in unique_labels]
+
+        # Plot the legend
+        plt.legend(legend_handles, legend_labels, loc='upper right')
+        plt.axis('off')
+        plt.tight_layout(pad=0)
+        plt.savefig(str(save_path) + '_scatter_plot_with_legend.pdf')
+        plt.show()
+    except:
+        print('Data has do be 1D')
 
 
 def generate_equally_distributed_data(num_samples, n_modalities):

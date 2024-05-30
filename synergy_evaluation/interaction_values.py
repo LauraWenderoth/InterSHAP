@@ -54,7 +54,14 @@ class MultiModalExplainer(Explainer):
         for powerset_mask in self.powerset_masks:
             mask = []
             for i in range(self.number_modalities):
-                mod_mask = [powerset_mask[i]] * self.modalities[i]
+                mod_mask = []
+                if isinstance(self.modalities[i], int):
+                    mod_mask.extend([powerset_mask[i]] * self.modalities[i])
+                elif isinstance(self.modalities[i], tuple):
+                    mod_mask.extend(np.full(self.modalities[i], powerset_mask[i]))
+                else:
+                    raise ValueError("Unsupported type for modality:", type(self.modalities[i]))
+
                 mask.append(mod_mask)
             if self.concat:
                 try:
@@ -102,8 +109,8 @@ class MultiModalExplainer(Explainer):
                 masked_sample = masked_sample + masked_data_point
                 masked_sample = masked_sample.to(self.device,dtype=torch.float)
             else:
-                random_data_point = [torch.tensor(np.tile(m, (batch_size, 1))).to(self.device,dtype=torch.float) for m in random_data_point]
-                mask_random_data_point = [mask_ ^ 1 for mask_ in mask]
+                random_data_point = [m.repeat((batch_size,) + (1,) * m.dim()).to(self.device, dtype=torch.float) for m in random_data_point]
+                mask_random_data_point = [mask_mod.to(self.device) ^ 1 for mask_mod in mask]
 
                 masked_data_point = [mask_random_data_point[i] * random_data_point[i] for i in range(len(sample))]
                 masked_sample = [mask[i] * sample[i] for i in range(len(sample))]
@@ -149,7 +156,8 @@ class MultiModalExplainer(Explainer):
                     mask = reverse_reduce_data(mask, data)
                     '''
                 if self.concat == False:
-                    mask = [torch.tensor(np.tile(m, (batch_size, 1))).to(self.device) for m in mask]
+
+                    mask = [torch.tensor(np.array(m)).repeat((batch_size,) + (1,) * torch.tensor(m).dim()).to(self.device) for m in mask]
                 else:
                     mask = torch.tensor(np.tile(mask, (batch_size, 1)))
 

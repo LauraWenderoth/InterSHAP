@@ -17,7 +17,6 @@ from synergy_evaluation.evaluation import eval_synergy
 import argparse
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(os.getcwd()), "MultiBench"))
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Argument Parser for your settings')
@@ -25,28 +24,31 @@ def parse_args():
 
     # Add arguments
 
-    parser.add_argument('--number_of_classes', type=int, default=2, help='Number of epochs for training')
-    parser.add_argument('--train_model', default=False, help='Whether to train the model or just eval') #action='store_false'
-    parser.add_argument('--seeds', nargs='+', type=int, default=[1], help='List of seed values, 113 ')
+    parser.add_argument('--number_of_classes', type=int, default=4, help='Number of epochs for training')
+    parser.add_argument('--train_model', default=True, help='Whether to train the model or just eval') #action='store_false'
+    parser.add_argument('--seeds', nargs='+', type=int, default=[1,42,113], help='List of seed values, 113 ')
     parser.add_argument('--use_wandb', default=False, help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=400, help='Batch size for training')
     parser.add_argument('--n_samples_for_interaction', type=int, default=100, help='Number of samples for interaction')
     parser.add_argument('--epochs', type=int, default=200, help='Number of epochs for training')
     parser.add_argument('--test_inverval', type=int, default=10, help='Eval interval during traing (int = number of epochs)')
-    parser.add_argument('--settings', nargs='+', type=str, default=[ 'synergy'], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
+    parser.add_argument('--settings', nargs='+', type=str, default=[ 'all'], #['redundancy','synergy', 'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0'],#'uniqueness0', 'uniqueness1','syn_mix5-10-0','syn_mix10-5-0 , #['syn_mix9-10-0','syn_mix8-10-0','syn_mix7-10-0','syn_mix6-10-0', 'syn_mix5-10-0','syn_mix4-10-0','syn_mix3-10-0','syn_mix2-10-0','syn_mix1-10-0'],#['syn_mix9', 'syn_mix92' ],#['mix1', 'mix2', 'mix3', 'mix4','mix5', 'mix6'],#['redundancy', 'synergy', 'uniqueness0', 'uniqueness1'], ['syn_mix2', 'syn_mix5','syn_mix10' ]
                         choices=['random', 'redundancy', 'synergy', 'uniqueness0', 'uniqueness1', 'uniqueness2','uniqueness3','uniqueness4','mix1', 'mix2', 'mix3', 'mix4', 'mix5', 'mix6','syn_mix5-10-0','syn_mix10-5-0','2_mc','2_rc','2_rm','2_rms','all','task7'], help='List of settings')
-    parser.add_argument('--concat', default = 'early', choices=['early', 'intermediate', 'late', 'function'], help='early, intermediate, late function')
-    parser.add_argument('--label', type=str, default='VEC2XOR_', help='Can choose "" as PID synthetic data or VEC2XOR_org_ "OR_" "XOR_" "VEC3_" "VEC2_"')
+    parser.add_argument('--concat', default = 'intermediate', choices=['early', 'intermediate', 'late', 'function','mvae'], help='early, intermediate, late function')
+    parser.add_argument('--label', type=str, default='single-cell_', help='Can choose "" as PID synthetic data or VEC2XOR_ VEC2XOR_org_ "OR_" "XOR_" "VEC3_" "VEC2_"')
     parser.add_argument('--device', type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for computation')
     parser.add_argument('--root_save_path', type=str, default='/home/lw754/masterproject/cross-modal-interaction/results/', help='Root save path')
     parser.add_argument('--data_path', type=str,
-                        default='/home/lw754/masterproject/synthetic_data/', help='Root save path: synthetic_data, real_world_data')
+                        default='/home/lw754/masterproject/real_world_data/', help='Root save path: synthetic_data, real_world_data')
+    parser.add_argument('--pretrained_path', type=str,
+                        default='',
+                        help='Root save path: synthetic_data, real_world_data') # TODO add
     parser.add_argument('--wandb_name', type=str, default='MA Final Results',
                         help='')
 
     parser.add_argument('--train_uni_model',  action='store_true', help='Whether to train the model or just eval')
     parser.add_argument('--synergy_eval_epoch', default=False, help='Whether to eval synergy metrics during training')
-    parser.add_argument('--synergy_metrics', nargs='+', type=str, default= ['SHAPE','SRI','Interaction','PID','EMAP'], help="List of seed values ['SHAPE','SRI','Interaction','PID','EMAP'] ")
+    parser.add_argument('--synergy_metrics', nargs='+', type=str, default= [], help="List of seed values ['SHAPE','SRI','Interaction','PID','EMAP'] ")
     parser.add_argument('--save_results', default=True, help='Whether to locally save results or not')
 
     args = parser.parse_args()
