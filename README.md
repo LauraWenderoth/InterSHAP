@@ -16,10 +16,11 @@ Few approaches, such as [PID score](https://papers.nips.cc/paper_files/paper/202
 
 | Score            | Modalities $> 2$ | Local | Unsupervised | Performance Agnostic | Controlled Testing |
 |------------------|-------------------|-------|--------------|----------------------|---------------------|
-| PID              | :x:               | :x:   | :x:          | :heavy_check_mark:   | :heavy_check_mark:  |
-| EMAP             | :x:               | :x:   | :x:          | :x:                  | :heavy_check_mark:  |
-| SHAPE            | :heavy_check_mark:| :x:   | :x:          | :x:                  | :x:                 |
-| InterSHAP (Ours)| :heavy_check_mark:| :heavy_check_mark:| :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: |
+| PID              | :x:               | :x:   | :x:          | <font color="green">:heavy_check_mark:</font>   | <font color="green">:heavy_check_mark:</font>  |
+| EMAP             | :x:               | :x:   | :x:          | :x:                  | <font color="green">:heavy_check_mark:</font>  |
+| SHAPE            | <font color="green">:heavy_check_mark:</font>| :x:   | :x:          | :x:                  | :x:                 |
+| InterSHAP (Ours)| <font color="green">:heavy_check_mark:</font>| <font color="green">:heavy_check_mark:</font>| <font color="green">:heavy_check_mark:</font>| <font color="green">:heavy_check_mark:</font> | <font color="green">:heavy_check_mark:</font> |
+
 
 - *Modalities $> 2$*: The score is effective for two or more modalities.
 - *Local*: Besides its global application at the dataset level, it is also applicable at the data point level.
