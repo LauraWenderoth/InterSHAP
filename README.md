@@ -41,7 +41,7 @@ InterSHAP values are presented in percentages for both the baseline model (XOR) 
 # Replicate Results
 To reproduce the results, you first create the synthetic datasets, then train the models, and finally evaluate the trained models on the test dataset.
 
-1. ## Setup
+ ## 1. Setup
    ```bash
    conda create --name interactions python=3.9
    conda activate interactions
@@ -49,7 +49,7 @@ To reproduce the results, you first create the synthetic datasets, then train th
    ```
 
 
-2. ## Generate Synthetic Data (HD-XOR)
+ ## 2. Generate Synthetic Data (HD-XOR)
 To generate the synthetic datasets (settings: uniqueness 1, uniqueness 2, synergy, random and redundancy) with the HD-XOR method for the following scripts:
 ```bash
 bash generate_data/generate_VEC2.sh $PATH/TO/SAVE/$
@@ -57,14 +57,14 @@ bash generate_data/generate_VEC3.sh $PATH/TO/SAVE/$
 bash generate_data/generate_VEC5.sh $PATH/TO/SAVE/$
 ```
 
-3. ## Train model
+ ## 3. Train model
 You can choose which  `--settings`  to consider and which concatenation method `--concat` ( <kbd style="background-color: lightgray;">early</kbd>,<kbd style="background-color: lightgray;">intermediate</kbd>, or <kbd style="background-color: lightgray;">late</kbd>) to use. 
 The `--unimodal` flag additionally trains an FCNN on each modality individually. Change `--label` to <kbd style="background-color: lightgray;">VEC3XOR_</kbd>, <kbd style="background-color: lightgray;">VEC4XOR_</kbd> for three or four modalities, respectivly.
 
 ```bash
 python main.py --seeds 1 42 113 --epochs 200 --label VEC2XOR_ --settings  uniqueness0 uniqueness1 synergy redundancy  --concat early --train_uni_model --train
 ```
-4. ## Eval model on cross-modal interactions
+ ## 4. Eval model on cross-modal interactions
 Specify the interaction scores you want to use with the `--synergy_metrics` flag. You can choose from  <kbd style="background-color: lightgray;">SHAPE</kbd>,  <kbd style="background-color: lightgray;">InterSHAP</kbd>, <kbd style="background-color: lightgray;">PID</kbd>, and  <kbd style="background-color: lightgray;">EMAP</kbd>. Additionally, indicate how many samples you want to evaluate with the `--n_samples_for_interaction` flag. 
 Note that EMAP may take a considerable amount of time, whereas InterSHAP can comfortably evaluate several thousand data points.
 
