@@ -60,7 +60,7 @@ import torch
 from synergy_evaluation.evaluation import eval_synergy
 from utils.dataset import MMDataset
 
-synergy_eval_metrics = ['SHAPE','SRI','Interaction','PID','EMAP'] #choose the one you want
+synergy_eval_metrics = ['SHAPE','InterSHAP','PID','EMAP'] #choose the one you want
 save_path = $PATH
 number_of_classes = $INT
 
