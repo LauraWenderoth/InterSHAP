@@ -28,6 +28,15 @@ Few approaches, such as [PID score](https://papers.nips.cc/paper_files/paper/202
 - *Performance agnostic*: The degree of cross-modality interactions is not influenced by the model's performance, ensuring robustness.
 - *Controlled testing*: The metric underwent rigorous testing for effectiveness using a synthetic dataset.
   
+## Results
+InterSHAP values are presented in percentages for both the baseline model (XOR) and the FCNN with early fusion on HD-XOR datasets. For the baseline model, the expected results are observed, affirming the functionality of the InterSHAP implementation. However, when considering the FCNN, slightly higher InterSHAP values are evident for uniqueness, accompanied by slightly lower values for the synergy setting. This indicates that the model deviates slightly from the baseline, a reflection also observed in the F1 scores. We cannot make statements regarding the expected behaviour of redundancy, and random settings. However, in the redundancy setting, the model relies on cross-modal interactions as well as modality contributions. The random setting illustrates that InterSHAP is performance-independent because it measures cross-model interaction, even if the model performance is not better than random.
+
+|             | Uniqueness 1 | Uniqueness 2 | Synergy | Redundancy | Random |
+|-------------|--------------|--------------|---------|------------|--------|
+| XOR         | 0.0          | 0.2 ± 0.1    | 99.7    | 38.6 ± 0.5  | 57.8 ± 1.1 |
+| FCNN        | 0.2 ± 0.1    | 3.1 ± 0.4    | 98.0    | 38.6 ± 0.5  | 57.8 ± 1.1 |
+
+
 ## Setup
 
 1. **Create Conda Environment:**
