@@ -16,9 +16,9 @@ Few approaches, such as [PID score](https://papers.nips.cc/paper_files/paper/202
 
 | Score            | Modalities $> 2$ | Local | Unsupervised | Performance Agnostic | Controlled Testing |
 |------------------|-------------------|-------|--------------|----------------------|---------------------|
-| PID              | :x:               | :x:   | :x:          | <font color="green">:heavy_check_mark:</font>   | <font color="green">:heavy_check_mark:</font>  |
-| EMAP             | :x:               | :x:   | :x:          | :x:                  | <font color="green">:heavy_check_mark:</font>  |
-| SHAPE            | <font color="green">:heavy_check_mark:</font>| :x:   | :x:          | :x:                  | :x:                 |
+| [PID score](https://papers.nips.cc/paper_files/paper/2023/hash/575286a73f238b6516ce0467d67eadb2-Abstract-Conference.html)              | :x:               | :x:   | :x:          | <font color="green">:heavy_check_mark:</font>   | <font color="green">:heavy_check_mark:</font>  |
+| [EMAP](https://aclanthology.org/2020.emnlp-main.62.pdf)              | :x:               | :x:   | :x:          | :x:                  | <font color="green">:heavy_check_mark:</font>  |
+| [SHAPE](https://www.ijcai.org/proceedings/2022/0425.pdf)            | <font color="green">:heavy_check_mark:</font>| :x:   | :x:          | :x:                  | :x:                 |
 | InterSHAP (Ours)| <font color="green">:heavy_check_mark:</font>| <font color="green">:heavy_check_mark:</font>| <font color="green">:heavy_check_mark:</font>| <font color="green">:heavy_check_mark:</font> | <font color="green">:heavy_check_mark:</font> |
 
 
