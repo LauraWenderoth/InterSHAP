@@ -69,6 +69,7 @@ class IntermediateFusionFeedForwardNN(nn.Module):
     def __init__(self, input_size, output_size):
         device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         super(IntermediateFusionFeedForwardNN, self).__init__()
+        input_size = [dim[0] for dim in input_size]
         hidden_size1 = [dim // 2 for dim in input_size]
         hidden_size2 = np.sum(hidden_size1) // 2
         self.fc_modality_layers = [nn.Sequential(
@@ -91,6 +92,7 @@ class LateFusionFeedForwardNN(nn.Module):
     def __init__(self, input_size, output_size):
         device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         super(LateFusionFeedForwardNN, self).__init__()
+        input_size = [dim[0] for dim in input_size]
         hidden_size1 = [dim // 2 for dim in input_size]
         hidden_size2 = [dim // 2 for dim in hidden_size1]
 

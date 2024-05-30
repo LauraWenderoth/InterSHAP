@@ -48,7 +48,7 @@ class MMDataset(Dataset):
         try:
             self.modality_shape = [mod.shape[1] for mod in self.X]
         except:
-            self.modality_shape = [len(mod[1])for mod in self.X]
+            self.modality_shape = [mod[1].shape for mod in self.X]
         self.device = device
         self.concat = True if concat == 'early' else False
 
