@@ -5,7 +5,7 @@ We present InterSHAP, a cross-modal interaction score, that can be used for an a
   <img src="visualization/Overview InterSHAP.png" alt="Image 1" width="800"/>
 </p>
 
-This reposetory supports the following cross-modal interaction scores: 
+This repository supports the following cross-modal interaction scores: 
 
 - InterSHAP (Ours)
 - [PID score](https://papers.nips.cc/paper_files/paper/2023/hash/575286a73f238b6516ce0467d67eadb2-Abstract-Conference.html)
@@ -45,6 +45,13 @@ Few approaches, such as [PID score](https://papers.nips.cc/paper_files/paper/202
    conda install --file requirements.txt
    ```
 
+## Generate Synthetic Data (HD-XOR)
+To generate the synthetic datasets (settings: uniqueness 1, uniqueness 2, synergy, random and redundancy) with the HD-XOR method for the following scripts:
+```
+bash generate_data/generate_VEC2.sh $PATH/TO/SAVE/$
+bash generate_data/generate_VEC3.sh $PATH/TO/SAVE/$
+bash generate_data/generate_VEC5.sh $PATH/TO/SAVE/$
+```
 
 ##  Application to one's own models. 
 
