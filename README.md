@@ -33,7 +33,7 @@ InterSHAP values are presented in percentages for both the baseline model (XOR) 
 
 |             | Uniqueness 1 | Uniqueness 2 | Synergy | Redundancy | Random |
 |-------------|--------------|--------------|---------|------------|--------|
-| XOR         | 0.0          | 0.2 ± 0.1    | 99.7    | 38.6 ± 0.5  | 57.8 ± 1.1 |
+| XOR         | 0.0          | 0.2 ± 0.1    | 99.7    | -  | - |
 | FCNN        | 0.2 ± 0.1    | 3.1 ± 0.4    | 98.0    | 38.6 ± 0.5  | 57.8 ± 1.1 |
 
 
