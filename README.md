@@ -32,7 +32,7 @@ Few approaches, such as [PID score](https://papers.nips.cc/paper_files/paper/202
 
 1. **Create Conda Environment:**
    ```bash
-   conda create --name interactions python=3.8
+   conda create --name interactions python=3.9
    ```
 
 2. **Activate the Environment:**
