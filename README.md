@@ -38,6 +38,8 @@ InterSHAP values are presented in percentages for both the baseline model (XOR) 
 
 
 
+# Visualisation
+
 # Replicate Results
 To reproduce the results, you first create the synthetic datasets, then train the models, and finally evaluate the trained models on the test dataset.
 
