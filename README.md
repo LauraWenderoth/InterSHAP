@@ -1,4 +1,5 @@
-# InterSHAP
+# InterSHAP 
+** Quantifying Cross-modal Interactions in Multimodal Machine Learning**
 
 We present InterSHAP, a cross-modal interaction score, that can be used for an arbitrary number of modalities, is local, performance agnostic, and operates on unlabelled data. We are the first, to the best of our knowledge, to use the Shapley interaction index [(Grabisch and Roubens, 1999)](https://econpapers.repec.org/article/sprjogath/v_3a28_3ay_3a1999_3ai_3a4_3ap_3a547-565.htm) to effectively separate cross-modal interactions from modality contributions. 
 <p align="center">
