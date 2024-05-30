@@ -5,13 +5,27 @@ We present InterSHAP, a cross-modal interaction score, that can be used for an a
   <img src="visualization/Overview InterSHAP.png" alt="Image 1" width="800"/>
 </p>
 
-This package supports the following cross-modal interaction scores: 
+This reposetory supports the following cross-modal interaction scores: 
 
-- InterSHAP
+- InterSHAP (Ours)
 - [PID score](https://papers.nips.cc/paper_files/paper/2023/hash/575286a73f238b6516ce0467d67eadb2-Abstract-Conference.html)
 - [EMAP](https://aclanthology.org/2020.emnlp-main.62.pdf) 
 - [SHAPE](https://www.ijcai.org/proceedings/2022/0425.pdf)
 
+Few approaches, such as [PID score](https://papers.nips.cc/paper_files/paper/2023/hash/575286a73f238b6516ce0467d67eadb2-Abstract-Conference.html), [EMAP](https://aclanthology.org/2020.emnlp-main.62.pdf) , and [SHAPE](https://www.ijcai.org/proceedings/2022/0425.pdf) have been developed to explore whether a model learns cross-modal interactions. While PID quantifies synergy within a dataset without considering the model, methods like EMAP calculate how a model would perform without cross-modal interactions. Additionally, SHAPE uses Shapley values to approximate cross-modal interactions. The table shows the limitations of the four approaches:
+
+| Score            | Modalities $> 2$ | Local | Unsupervised | Performance Agnostic | Controlled Testing |
+|------------------|-------------------|-------|--------------|----------------------|---------------------|
+| PID              | :x:               | :x:   | :x:          | :heavy_check_mark:   | :heavy_check_mark:  |
+| EMAP             | :x:               | :x:   | :x:          | :x:                  | :heavy_check_mark:  |
+| SHAPE            | :heavy_check_mark:| :x:   | :x:          | :x:                  | :x:                 |
+| InterSHAP (Ours)| :heavy_check_mark:| :heavy_check_mark:| :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: |
+
+- *Modalities $> 2$*: The score is effective for two or more modalities.
+- *Local*: Besides its global application at the dataset level, it is also applicable at the data point level.
+- *Unsupervised*: Ground truth labels are unnecessary to calculate the score.
+- *Performance agnostic*: The degree of cross-modality interactions is not influenced by the model's performance, ensuring robustness.
+- *Controlled testing*: The metric underwent rigorous testing for effectiveness using a synthetic dataset.
   
 ## Setup
 
