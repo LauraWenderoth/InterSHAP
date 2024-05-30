@@ -37,32 +37,36 @@ InterSHAP values are presented in percentages for both the baseline model (XOR) 
 | FCNN        | 0.2 ± 0.1    | 3.1 ± 0.4    | 98.0    | 38.6 ± 0.5  | 57.8 ± 1.1 |
 
 
-## Setup
 
-1. **Create Conda Environment:**
+# Replicate Results
+To reproduce the results, you first create the synthetic datasets, then train the models, and finally evaluate the trained models on the test dataset.
+
+1. ## Setup
    ```bash
    conda create --name interactions python=3.9
-   ```
-
-2. **Activate the Environment:**
-   ```bash
    conda activate interactions
-   ```
-
-3. **Install Dependencies:**
-   ```bash
    conda install --file requirements.txt
    ```
 
-## Generate Synthetic Data (HD-XOR)
+
+2. ## Generate Synthetic Data (HD-XOR)
 To generate the synthetic datasets (settings: uniqueness 1, uniqueness 2, synergy, random and redundancy) with the HD-XOR method for the following scripts:
-```
+```bash
 bash generate_data/generate_VEC2.sh $PATH/TO/SAVE/$
 bash generate_data/generate_VEC3.sh $PATH/TO/SAVE/$
 bash generate_data/generate_VEC5.sh $PATH/TO/SAVE/$
 ```
 
-##  Application to one's own models. 
+3. ## Train model
+You can choose which settings to consider and which concatenation method (early, intermediate, or late) to use. 
+
+<kbd style="background-color: lightgray;">--unimodal</kbd> flag additionally trains an FCNN on each modality individually.
+
+```bash
+python main.py --seeds 1 42 113 --n_samples_for_interaction 2000 --epochs 200 --label VEC2XOR_ --synergy_metrics SHAPE SRI Interaction EMAP PID --settings synergy uniqueness0 redundancy uniqueness1 --concat early --train_uni_model
+```
+
+#  Application to one's own models. 
 
 ```
 import torch
