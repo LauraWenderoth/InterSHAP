@@ -30,6 +30,22 @@ Few approaches, such as [PID score](https://papers.nips.cc/paper_files/paper/202
   
 ## Setup
 
+1. **Create Conda Environment:**
+   ```bash
+   conda create --name interactions python=3.8
+   ```
+
+2. **Activate the Environment:**
+   ```bash
+   conda activate interactions
+   ```
+
+3. **Install Dependencies:**
+   ```bash
+   conda install --file requirements.txt
+   ```
+
+
 ##  Application to one's own models. 
 
 ```
