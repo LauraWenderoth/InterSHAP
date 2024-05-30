@@ -59,7 +59,7 @@ bash generate_data/generate_VEC5.sh $PATH/TO/SAVE/$
 
 3. ## Train model
 You can choose which  `--settings`  to consider and which concatenation method `--concat` ( <kbd style="background-color: lightgray;">early</kbd>,<kbd style="background-color: lightgray;">intermediate</kbd>, or <kbd style="background-color: lightgray;">late</kbd>) to use. 
-The `--unimodal` flag additionally trains an FCNN on each modality individually. Change `--settings` <kbd style="background-color: lightgray;">--label</kbd> to VEC3XOR_, VEC4XOR_ for three or four modalities, respectivly.
+The `--unimodal` flag additionally trains an FCNN on each modality individually. Change `--label` to <kbd style="background-color: lightgray;">VEC3XOR_</kbd>, <kbd style="background-color: lightgray;">VEC4XOR_</kbd> for three or four modalities, respectivly.
 
 ```bash
 python main.py --seeds 1 42 113 --epochs 200 --label VEC2XOR_ --settings  uniqueness0 uniqueness1 synergy redundancy  --concat early --train_uni_model --train
