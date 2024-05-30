@@ -1,12 +1,19 @@
 # InterSHAP
 
-We present InterSHAP, a cross-modal interaction score, that can be used for an arbitrary number of modalities, is local, performance agnostic, and operates on unlabelled data. We are the first, to the best of our knowledge, to use the Shapley interaction index [Grabisch and Roubens, 1999](https://econpapers.repec.org/article/sprjogath/v_3a28_3ay_3a1999_3ai_3a4_3ap_3a547-565.htm) to effectively separate cross-modal interactions frommodality contributions. 
+We present InterSHAP, a cross-modal interaction score, that can be used for an arbitrary number of modalities, is local, performance agnostic, and operates on unlabelled data. We are the first, to the best of our knowledge, to use the Shapley interaction index [(Grabisch and Roubens, 1999)](https://econpapers.repec.org/article/sprjogath/v_3a28_3ay_3a1999_3ai_3a4_3ap_3a547-565.htm) to effectively separate cross-modal interactions from modality contributions. 
 <p align="center">
   <img src="visualization/Overview InterSHAP.png" alt="Image 1" width="800"/>
 </p>
 
+This package supports the following cross-modal interaction scores: 
 
-## Cross modal interaction metrics
+- InterSHAP
+- [PID score](https://papers.nips.cc/paper_files/paper/2023/hash/575286a73f238b6516ce0467d67eadb2-Abstract-Conference.html)
+- [EMAP](https://aclanthology.org/2020.emnlp-main.62.pdf) 
+- [SHAPE](https://www.ijcai.org/proceedings/2022/0425.pdf)
+
+  
+## Setup
 
 ##  Application to one's own models. 
 
