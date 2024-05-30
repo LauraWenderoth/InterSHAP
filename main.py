@@ -48,7 +48,7 @@ def parse_args():
 
     parser.add_argument('--train_uni_model',  action='store_true', help='Whether to train the model or just eval')
     parser.add_argument('--synergy_eval_epoch', default=False, help='Whether to eval synergy metrics during training')
-    parser.add_argument('--synergy_metrics', nargs='+', type=str, default= [], help="List of seed values ['SHAPE','SRI','Interaction','PID','EMAP'] ")
+    parser.add_argument('--synergy_metrics', nargs='+', type=str, default= [], help="List of seed values ['SHAPE','SRI','InterSHAP','PID','EMAP'] ")
     parser.add_argument('--save_results', default=True, help='Whether to locally save results or not')
 
     args = parser.parse_args()
