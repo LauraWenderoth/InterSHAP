@@ -58,15 +58,15 @@ bash generate_data/generate_VEC5.sh $PATH/TO/SAVE/$
 ```
 
 3. ## Train model
-You can choose which <kbd style="background-color: lightgray;">--settings</kbd> to consider and which concatenation method <kbd style="background-color: lightgray;">--concat</kbd> (early, intermediate, or late) to use. 
-The <kbd style="background-color: lightgray;">--unimodal</kbd> flag additionally trains an FCNN on each modality individually. Change  <kbd style="background-color: lightgray;">--label</kbd> to VEC3XOR_, VEC4XOR_ for three or four modalities, respectivly.
+You can choose which  `--settings`  to consider and which concatenation method `--concat` ( <kbd style="background-color: lightgray;">early</kbd>,<kbd style="background-color: lightgray;">intermediate</kbd>, or <kbd style="background-color: lightgray;">late</kbd>) to use. 
+The `--unimodal` flag additionally trains an FCNN on each modality individually. Change `--settings` <kbd style="background-color: lightgray;">--label</kbd> to VEC3XOR_, VEC4XOR_ for three or four modalities, respectivly.
 
 ```bash
 python main.py --seeds 1 42 113 --epochs 200 --label VEC2XOR_ --settings  uniqueness0 uniqueness1 synergy redundancy  --concat early --train_uni_model --train
 ```
 4. ## Eval model on cross-modal interactions
-Specify the interaction scores you want to use with the `--synergy_metrics` flag. You can choose from `SHAPE`, `InterSHAP`, `EMAP`, and `PID`. Additionally, indicate how many samples you want to evaluate with the `--n_samples_for_interaction` flag. 
-Note that `EMAP` may take a considerable amount of time, whereas `InterSHAP` can comfortably evaluate several thousand data points.
+Specify the interaction scores you want to use with the `--synergy_metrics` flag. You can choose from  <kbd style="background-color: lightgray;">SHAPE</kbd>,  <kbd style="background-color: lightgray;">InterSHAP</kbd>, <kbd style="background-color: lightgray;">PID</kbd>, and  <kbd style="background-color: lightgray;">EMAP</kbd>. Additionally, indicate how many samples you want to evaluate with the `--n_samples_for_interaction` flag. 
+Note that EMAP may take a considerable amount of time, whereas InterSHAP can comfortably evaluate several thousand data points.
 
 ```bash
 python main.py --seeds 1 42 113 --n_samples_for_interaction 2000 --epochs 200 --label VEC2XOR_ --synergy_metrics SHAPE InterSHAP EMAP PID --settings synergy uniqueness0 redundancy uniqueness1 --concat early 
