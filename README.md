@@ -22,7 +22,7 @@ Few approaches, such as [PID score](https://papers.nips.cc/paper_files/paper/202
 | InterSHAP (Ours)| <font color="green">:heavy_check_mark:</font>| <font color="green">:heavy_check_mark:</font>| <font color="green">:heavy_check_mark:</font>| <font color="green">:heavy_check_mark:</font> | <font color="green">:heavy_check_mark:</font> |
 
 
-- *Modalities $> 2$*: The score is effective for two or more modalities.
+- *Modalities > 2*: The score is effective for two or more modalities.
 - *Local*: Besides its global application at the dataset level, it is also applicable at the data point level.
 - *Unsupervised*: Ground truth labels are unnecessary to calculate the score.
 - *Performance agnostic*: The degree of cross-modality interactions is not influenced by the model's performance, ensuring robustness.
