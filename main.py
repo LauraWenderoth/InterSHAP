@@ -25,7 +25,7 @@ def parse_args():
     # Add arguments
 
     parser.add_argument('--number_of_classes', type=int, default=4, help='Number of epochs for training')
-    parser.add_argument('--train_model', default=True, help='Whether to train the model or just eval') #action='store_false'
+    parser.add_argument('--train_model',  action='store_true', help='Whether to train the model or just eval') #action='store_false'
     parser.add_argument('--seeds', nargs='+', type=int, default=[1,42,113], help='List of seed values, 113 ')
     parser.add_argument('--use_wandb', default=False, help='Whether to use wandb or not')
     parser.add_argument('--batch_size', type=int, default=400, help='Batch size for training')
